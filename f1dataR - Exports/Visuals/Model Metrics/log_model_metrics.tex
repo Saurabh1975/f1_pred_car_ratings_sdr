@@ -1,0 +1,18 @@
+\setlength{\LTpost}{0mm}
+\begin{longtable}{lrrrr}
+\caption*{
+{\large \textbf{Time Weighted Logistic Regression Model Performance (Qualifying)}} \\ 
+{\small Against Top N Cut Offs | Tested on 2014 - 2023 Races}
+} \\ 
+\toprule
+Top N & Psuedo R<sup>2</sup>\textsuperscript{\textit{1}} & Partial Psuedo R<sup>2</sup><sub>Constructor</sub> & Partial Psuedo R<sup>2</sup><sub>Driver</sub> & Implied Constructor Influence \\ 
+\midrule\addlinespace[2.5pt]
+Podium (T3) & $0.288$ & $0.087$ & $0.023$ & $79.2\%$ \\ 
+Top 6 & $0.195$ & $0.082$ & $0.021$ & $79.7\%$ \\ 
+Points (T10) & $0.068$ & $0.034$ & $-0.003$ & $109.9\%$ \\ 
+\bottomrule
+\end{longtable}
+\begin{minipage}{\linewidth}
+\textsuperscript{\textit{1}}McFaddens Psuedo R<sup>2</sup>\\
+\end{minipage}
+
