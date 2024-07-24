@@ -19,8 +19,6 @@ theme_saurabh <- function () {
 
 
 
-
-
 ### Constructor Viz
 
 
@@ -42,7 +40,9 @@ plot_constructor_rapm_history <- function(selected_constructor){
   
   df_constructor <- constructor_rapm_history %>%
     filter(parent_constructor_id == selected_constructor)  %>%
-    filter(model_date >= start_date)
+    filter(model_date >= start_date) %>%
+    mutate(rapm_blended_lower_limit =  rapm_blended - (rapm_error*1.96),
+           rapm_blended_upper_limit =  rapm_blended + (rapm_error*1.96))
   
   
   season_start_end <- results_unfiltered %>% 
@@ -57,7 +57,7 @@ plot_constructor_rapm_history <- function(selected_constructor){
   
   df_constructor_last_point <- df_constructor %>%
     group_by(parent_constructor_id) %>%
-    slice(n())  # Select the last row for each group
+    slice(n()) 
   
   
   
@@ -66,8 +66,10 @@ plot_constructor_rapm_history <- function(selected_constructor){
   g <- ggplot(df_constructor, aes(x = overall_round, y = rapm_blended, color = primary_color, 
                                   group = parent_constructor_id)) +
     #Actual Line Chart
+    geom_ribbon(aes(ymin = rapm_blended_lower_limit, ymax = rapm_blended_upper_limit, fill = primary_color), 
+                alpha = 0.15, color = NA) +
     geom_line(linewidth = 1) +
-    geom_point(aes(y = rapm), alpha = 0.2) +
+    geom_point(aes(y = rapm), alpha = 0.25) +
     #Season Breaks
     geom_vline(data = season_start_end, aes(xintercept = season_start_round), 
                color = '#404040', linetype = 'dashed') +
@@ -118,7 +120,7 @@ for(constructor in current_constructor_list){
 
 
 
-
+selected_driver = 'bottas'
 
 ### Driver Viz
 
@@ -142,7 +144,9 @@ plot_driver_rapm_history <- function(selected_driver){
   
   df_driver <- driver_rapm_history %>%
     filter(driver_id == selected_driver)  %>%
-    filter(model_date >= start_date)
+    filter(model_date >= start_date) %>%
+    mutate(rapm_blended_lower_limit =  rapm_blended - (rapm_error*1.96),
+           rapm_blended_upper_limit =  rapm_blended + (rapm_error*1.96))
   
   
   season_start_end <- results_unfiltered %>% 
@@ -192,10 +196,12 @@ plot_driver_rapm_history <- function(selected_driver){
   
   # Create Line Plot (Season/Round)
   g <- ggplot(df_driver, aes(x = overall_round, y = rapm_blended, color = primary_color, group = driver_id)) +
+    geom_ribbon(aes(ymin = rapm_blended_lower_limit, ymax = rapm_blended_upper_limit, fill = primary_color), 
+                alpha = 0.15, color = NA) +
     #Actual Line Chart
     geom_line(linewidth = 1) +
     #geom_line(data = other_drivers, linewidth = 0.25, color = '#999999') +
-    geom_point(aes(y = rapm), alpha = 0.1) +
+    geom_point(aes(y = rapm), alpha = 0.25) +
     #Season Breaks
     geom_vline(data = season_start_end, aes(xintercept = season_start_round), 
                color = '#404040', linetype = 'dashed') +

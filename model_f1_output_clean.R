@@ -1,7 +1,7 @@
 
 
 #Read in latest RAPM History
-rapm_history <- readRDS("f1dataR - Exports/Models/rapm_history_posWeighted_noDNF.rds") 
+rapm_history <- readRDS("f1dataR - Exports/Models/rapm_history_posWeighted_noDNF_bootstrapped.rds") 
 
 
 
@@ -17,7 +17,8 @@ driver_rapm_history <- rapm_history %>%
   filter(model_date >= stint_start, model_date <= stint_end) %>%
   mutate(rapm = -rapm,
          rapm_loess = -rapm_loess,
-         rapm_blended = -rapm_blended)
+         rapm_blended = -rapm_blended,
+         rapm_error = -rapm_error)
 
 
 
@@ -40,7 +41,8 @@ constructor_rapm_history <- rapm_history %>%
   rename(parent_constructor_name = name) %>%
   mutate(rapm = -rapm,
          rapm_loess = -rapm_loess,
-         rapm_blended = -rapm_blended)
+         rapm_blended = -rapm_blended,
+         rapm_error = -rapm_error)
 
 
 

@@ -61,6 +61,8 @@ make_matrix_rows <- function(lineup, players_in, dnf_partial = FALSE) {
 #             rapm_model - sparse matrix (X) for model training
 #             target - list of rank finishes corresponding to rapm_model rows
 #             weights - weights for training
+
+
 get_rapm_iterative_r2 <- function(rapm_model, target, weights){
   
   
@@ -84,6 +86,12 @@ get_rapm_iterative_r2 <- function(rapm_model, target, weights){
                                type.measure = "mae",
                                standard.error = TRUE)
   
+  boot_results <- boot(data =  data.frame(target = target, rapm_model, weights = weights), 
+                       statistic = ridge_func_boot, 
+                       R = 50)  # number of bootstrap replicates
+  
+  se <- apply(boot_results$t, 2, sd)
+  se <- se[2:length(se)]
   
   
   #Driver Only Model for partial r2
@@ -110,7 +118,7 @@ get_rapm_iterative_r2 <- function(rapm_model, target, weights){
   
   #Pull Coefficients
   player_coefficients <- coef_model$beta ## length = 1058
-  player_coefficients_error <- coef_model ## length = 1058
+  player_coefficients_error <- se ## length = 1058
   
   
   rapm <- player_coefficients[1:length(driver_cons_list)]
@@ -118,10 +126,38 @@ get_rapm_iterative_r2 <- function(rapm_model, target, weights){
   rapm_frame <- data.frame("entity_id" = driver_cons_list,
                            "rapm" = rapm)
   
-  return(list(rapm_frame, rapm, coef_model, driver_only_model, constructor_only_model))
+  return(list(rapm_frame, player_coefficients_error, coef_model, driver_only_model, constructor_only_model))
   
   
 }
+
+
+ridge_func_boot <- function(data, indices) {
+  d <- data[indices,]
+  x_boot <- as.matrix(d[, -c(1,ncol(d))])  # All columns except first (target) and last (weights)
+  y_boot <- d[, 1]  # First column (target)
+  weights_boot <- d[, ncol(d)]  # Last column (weights)
+  
+  cv_model <- glmnet::cv.glmnet(x = x_boot,
+                                y = y_boot,
+                                alpha = 0, 
+                                weights = weights_boot,
+                                standardize = FALSE, 
+                                type.measure = "mae")
+  
+  lam <- cv_model$lambda.min
+  
+  coef_model <- glmnet::glmnet(x = x_boot, 
+                               y = y_boot,
+                               alpha = 0, 
+                               weights = weights_boot,
+                               standardize = FALSE,
+                               lambda = lam,
+                               type.measure = "mae")
+  
+  return(as.vector(coef(coef_model)))
+}
+
 
 
 # Function: decay_function
@@ -285,6 +321,7 @@ rapm_history <- data.frame(
   rapm = numeric(),
   rapm_loess = numeric(),
   rapm_blended = numeric(),
+  rapm_error = numeric(),
   model_date = as.Date(character()),
   circuit = character(),
   season = numeric(),
@@ -366,7 +403,8 @@ for(i in 1:(length(race_dates))){
            circuit = current_circuit,
            dev_ratio =   rapm_response[[3]]$dev.ratio,
            rapm_loess = NA,
-           rapm_blended = NA)
+           rapm_blended = NA,
+           rapm_error = rapm_response[[2]])
   
   
   # Store the RAPM history
@@ -442,7 +480,7 @@ for(i in 1:(length(race_dates))){
 
 # Save Down Model
 saveRDS(object = rapm_history, 
-        file = paste0("f1dataR - Exports/Models/rapm_history_posWeighted_noDNF.rds"))
+        file = paste0("f1dataR - Exports/Models/rapm_history_posWeighted_noDNF_bootstrapped.rds"))
 
 
 
