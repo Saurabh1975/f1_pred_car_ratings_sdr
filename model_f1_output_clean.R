@@ -1,4 +1,5 @@
 
+library(dplyr)
 
 #Read in latest RAPM History
 rapm_history <- readRDS("f1dataR - Exports/Models/rapm_history_posWeighted_noDNF_bootstrapped.rds") 
