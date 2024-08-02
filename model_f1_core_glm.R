@@ -4,6 +4,7 @@
 library(Matrix)
 library(stringr)
 library(Kendall)
+library(boot)
 
 # Function: make_matrix_rows
 # Purpose: Make the sparse matrix for processing
@@ -481,7 +482,8 @@ for(i in 1:(length(race_dates))){
 # Save Down Model
 saveRDS(object = rapm_history, 
         file = paste0("f1dataR - Exports/Models/rapm_history_posWeighted_noDNF_bootstrapped.rds"))
-
+saveRDS(object = rapm_history, 
+        file = paste0("f1dataR - Exports/Data/rapm_history_posWeighted_noDNF_bootstrapped.csv"))
 
 
 
