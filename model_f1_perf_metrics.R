@@ -413,7 +413,7 @@ get_model_performance <- function(results_full,
   
   
   
-  results_pred_test <- results_pred %>% filter(season > 2013, season < 2022)
+  results_pred_test <- results_pred %>% filter(season > 2013, season < 2024)
   
   
   
@@ -723,7 +723,7 @@ metrics_df <- data.frame()
 #'no_dnf', 'partial_credit_dnf', 'all_dnf', 
 
 
-for (dnf_model in c('no_dnf')) {
+for (dnf_model in c('no_dnf', 'partial_credit_dnf', 'all_dnf', 'quali')) {
   cat("Processing dnf_model:", dnf_model, "\n")
   
   if (dnf_model == 'no_dnf') {
@@ -767,6 +767,6 @@ print(metrics_df)
 
 
 
-saveRDS(object = metrics_df, file = paste0("f1dataR - Exports/Data/model_metrics_core.rds"))
+#saveRDS(object = metrics_df, file = paste0("f1dataR - Exports/Data/model_metrics_core.rds"))
 
 

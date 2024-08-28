@@ -3,14 +3,15 @@ library(ggtext)
 library(extrafont)
 library(gtable)
 library(gtExtras)
+library(webshot2)
 
 # Function: theme_saurabh
 # Purpose: Personal, minimalist theme
 theme_saurabh <- function () { 
   theme(
     text=element_text(family='Roboto Mono'),
-    plot.title=element_text(size=14, family = 'Roboto Black', color = '#101010'),
-    plot.subtitle=element_text(size=10, family = 'Roboto Slab'),
+    plot.title=element_text(size=18, family = 'Roboto Black', color = '#101010'),
+    plot.subtitle=element_text(size=12, family = 'Roboto Slab'),
     plot.caption=element_text(size=7, family = 'Roboto Mono'),
     panel.background = element_blank(),
     
@@ -96,8 +97,8 @@ plot_constructor_rapm_history <- function(selected_constructor){
     )
   
   
-  ggsave(plot = g, filename = paste0("f1dataR - Exports/Visuals/Ratings/Trend/Constructor/", selected_constructor, ".png"),
-         width = 8, height = 4)
+  ggsave(plot = g, filename = paste0("f1dataR - Exports/Visuals/Ratings/Trend/Constructor/", selected_constructor, ".jpg"),
+         width = 8, height = 4, dpi = 1200)
   
   
   
@@ -229,7 +230,7 @@ plot_driver_rapm_history <- function(selected_driver){
            max(season_start_end$season_start_round) + 15)) +
     ylim(c(rapm_lower_limit, rapm_upper_limit + (rapm_upper_limit - rapm_lower_limit)*.1)) +
     theme_saurabh() +
-    labs(title = paste0(selected_driver_name, " - Driver Rating (Model Raw)"),
+    labs(title = paste0(selected_driver_name, " - Driver Rating (Raw)"),
          subtitle = paste0("V6 Hybrid Era 2014 to ", end_date),
          x = "",
          y = "Rating") +
@@ -240,8 +241,8 @@ plot_driver_rapm_history <- function(selected_driver){
     )
   
   
-  ggsave(plot = g, filename = paste0("f1dataR - Exports/Visuals/Ratings/Trend/Driver/raw -", selected_driver, ".png"),
-         width = 8, height = 4)
+  ggsave(plot = g, filename = paste0("f1dataR - Exports/Visuals/Ratings/Trend/Driver/", selected_driver, " - raw.jpg"),
+         width = 8, height = 4, dpi = 1200)
   
   
   
@@ -554,10 +555,13 @@ latest_race = paste0(latest_race$race_name, ", ", latest_race$season)
 
 # Get rankings for date above
 
+direct_path <- 'C:/Users/saurabh.rane/OneDrive - Slalom/NBA/f1_pred_car_ratings_sdr/'
+
+
 current_constructor_rankings <- constructor_rapm_history %>%
   ungroup() %>%
   filter(model_date == latest_date)  %>%
-  mutate(constructor_img_url = paste0('supplementary_data/Images/Constructor/png/', parent_constructor_id, '.png')) %>%
+  mutate(constructor_img_url = paste0(direct_path,'supplementary_data/Images/Constructor/png/', parent_constructor_id, '.png')) %>%
   dplyr::select(constructor_img_url, parent_constructor_name, 
                 rapm_blended, rapm_error) %>%
   arrange(-rapm_blended) 
@@ -566,8 +570,8 @@ current_constructor_rankings <- constructor_rapm_history %>%
 current_driver_rankings <- driver_rapm_history %>%
   ungroup() %>%
   filter(model_date == latest_date) %>%
-  mutate(driver_headshot_url = paste0('supplementary_data/Images/Drivers/png/', driver_id, '.png'),
-         constructor_img_url = paste0('supplementary_data/Images/Constructor/png/', parent_constructor_id, '.png')) %>%
+  mutate(driver_headshot_url = paste0(direct_path,'supplementary_data/Images/Drivers/png/', driver_id, '.png'),
+         constructor_img_url = paste0(direct_path,'supplementary_data/Images/Constructor/png/', parent_constructor_id, '.png')) %>%
   dplyr::select(driver_headshot_url, driver_name,
                 constructor_img_url, parent_constructor_name, 
                 rapm_blended, rapm_error) %>%
@@ -577,8 +581,8 @@ current_driver_rankings <- driver_rapm_history %>%
 current_overall_rankings <- driver_rapm_history %>%
   ungroup() %>%
   filter(model_date == latest_date) %>%
-  mutate(driver_headshot_url = paste0('supplementary_data/Images/Drivers/png/', driver_id, '.png'),
-         constructor_img_url = paste0('supplementary_data/Images/Constructor/png/', parent_constructor_id, '.png')) %>%
+  mutate(driver_headshot_url = paste0(direct_path,'supplementary_data/Images/Drivers/png/', driver_id, '.png'),
+         constructor_img_url = paste0(direct_path,'supplementary_data/Images/Constructor/png/', parent_constructor_id, '.png')) %>%
   dplyr::select(driver_headshot_url, driver_name,
                 constructor_img_url, parent_constructor_name, 
                 rapm_blended, rapm_error) %>%
@@ -593,7 +597,7 @@ current_overall_rankings <- driver_rapm_history %>%
   arrange(-rapm_blended_overall) 
 
 
-overall_rankings_tbl <- get_overall_rankings_tbl(current_overall_rankings)
+overall_rankings_tbl <- get_overall_rankings_tbl(current_overall_rankings )
 
 constructor_rankings_tbl <- get_constructor_rankings_tbl(current_constructor_rankings)
 
@@ -601,8 +605,12 @@ driver_rankings_tbl <- get_driver_rankings_tbl(current_driver_rankings)
 
 
 
+gtsave_extra(data = overall_rankings_tbl, 
+       filename = paste0("f1dataR - Exports/overall_rankings - ", latest_date, ".png"), 
+       zoom = 10)
+
 gtsave(data = overall_rankings_tbl, 
-       filename = paste0("f1dataR - Exports/overall_rankings - ", latest_date, ".png"), expand = 15)
+       filename = paste0("f1dataR - Exports/overall_rankings - ", latest_date, ".html"))
 
 
 gtsave(data = constructor_rankings_tbl, 
@@ -613,5 +621,460 @@ gtsave(data = driver_rankings_tbl,
        filename = paste0("f1dataR - Exports/driver_rankings - ", latest_date, ".png"))
 
 
-#Paper Artifacts/Ratings/Tables/
+
+
+
+
+
+
+
+
+
+
+
+
+#Two Column Tables
+
+#Overall Rankings
+
+get_overall_rankings_split_tbl <- function(current_overall_rankings){
+  
+  df1 <- current_overall_rankings[1:10, ]
+  df2 <- current_overall_rankings[11:20, ]
+  
+  # Reset the index for both dataframes
+  df1 <- df1 %>% mutate(index = row_number())
+  df2 <- df2 %>% mutate(index = row_number())
+  
+  # Rename columns in df2 with _2 suffix
+  colnames(df2) <- paste0(colnames(df2), "_2")
+  
+  # Join the two dataframes on the new index column
+  current_overall_rankings_split <- df1 %>% 
+    inner_join(df2, by = c("index" = "index_2")) %>%
+    dplyr::select(-index)  # Remove the index column if not needed
+  
+  
+  overall_rankings_tbl_split <- current_overall_rankings_split %>%
+    mutate(rapm_blended_driver_error = paste0("± ", abs(round(rapm_blended_driver_error, 2))),
+           rapm_blended_constructor_error = paste0("± ", abs(round(rapm_blended_constructor_error, 2))),
+           rapm_blended_overall_error = paste0("± ", abs(round(rapm_blended_overall_error, 2))),
+           rapm_blended_driver_error_2 = paste0("± ", abs(round(rapm_blended_driver_error_2, 2))),
+           rapm_blended_constructor_error_2 = paste0("± ", abs(round(rapm_blended_constructor_error_2, 2))),
+           rapm_blended_overall_error_2 = paste0("± ", abs(round(rapm_blended_overall_error_2, 2)))) %>%
+    gt() %>%
+    tab_header(
+      title = md("**Driver/Constructor Composite Ratings**"),
+      subtitle = paste0("As of the ", latest_race)) %>% 
+    cols_label(
+      driver_headshot_url  = "Driver",
+      driver_name = "",
+      constructor_img_url = "Constructor",
+      parent_constructor_name = "",
+      rapm_blended_driver = "Driver Rating",
+      rapm_blended_driver_error = "",
+      rapm_blended_constructor = "Constructor Rating",
+      rapm_blended_constructor_error = "",
+      rapm_blended_overall = "Overall Rating",
+      rapm_blended_overall_error = "",
+      #Second Column
+      driver_headshot_url_2  = "Driver",
+      driver_name_2 = "",
+      constructor_img_url_2 = "Constructor",
+      parent_constructor_name_2 = "",
+      rapm_blended_driver_2 = "Driver Rating",
+      rapm_blended_driver_error_2 = "",
+      rapm_blended_constructor_2 = "Constructor Rating",
+      rapm_blended_constructor_error_2 = "",
+      rapm_blended_overall_2 = "Overall Rating",
+      rapm_blended_overall_error_2 = ""
+    )  %>%
+    #Cols Row 1
+    gt_img_rows(columns = driver_headshot_url, height = 30, img_source = 'local') %>%
+    gt_img_rows(columns = constructor_img_url, height = 25, img_source = 'local') %>%
+    #Cols Row 2
+    gt_img_rows(columns = driver_headshot_url_2, height = 30, img_source = 'local') %>%
+    gt_img_rows(columns = constructor_img_url_2, height = 25, img_source = 'local') %>%
+    #Merge Stacks Col 1
+    gt_merge_stack(col1 = constructor_img_url, col2 = parent_constructor_name, small_cap=TRUE, 
+                   font_weight = c('normal','bold'), palette = c('black', '#404040')) %>%
+    gt_merge_stack(col1 = rapm_blended_driver, col2 = rapm_blended_driver_error, small_cap=TRUE, 
+                   font_weight = c('normal','bold'),) %>%
+    gt_merge_stack(col1 = rapm_blended_constructor, col2 = rapm_blended_constructor_error, small_cap=TRUE, 
+                   font_weight = c('normal','bold'),) %>%
+    #Merge Stacks Col 2
+    gt_merge_stack(col1 = constructor_img_url_2, col2 = parent_constructor_name_2, small_cap=TRUE, 
+                   font_weight = c('normal','bold'), palette = c('black', '#404040')) %>%
+    gt_merge_stack(col1 = rapm_blended_driver_2, col2 = rapm_blended_driver_error_2, small_cap=TRUE, 
+                   font_weight = c('normal','bold'),) %>%
+    gt_merge_stack(col1 = rapm_blended_constructor_2, col2 = rapm_blended_constructor_error_2, small_cap=TRUE, 
+                   font_weight = c('normal','bold'),) %>%
+    fmt_number(
+      columns = c(rapm_blended_driver, rapm_blended_constructor, rapm_blended_overall,
+                  rapm_blended_driver_2, rapm_blended_constructor_2, rapm_blended_overall_2),
+      decimals = 2,
+      use_seps = FALSE,
+      force_sign = TRUE
+    ) %>%
+    tab_style(
+      style = list(
+        cell_text(
+          font = c(google_font(name = "Roboto Mono")),
+          weight = "bold"
+        )
+      ),
+      locations = cells_body(columns = vars(rapm_blended_driver, rapm_blended_constructor, rapm_blended_overall,
+                                            rapm_blended_driver_2, rapm_blended_constructor_2, rapm_blended_overall_2))
+    ) %>%
+    tab_options(
+      table.font.names = "Roboto", 
+      table.font.size = 14,
+      heading.title.font.size = 20,
+      heading.subtitle.font.size = 13,
+      column_labels.font.size = 13,
+      column_labels.font.weight = 'bold',
+      row_group.background.color = '#fAfAfA',
+      row_group.font.size = 11,
+      row_group.font.weight = 'bold',
+      data_row.padding = px(5)
+    ) %>%
+    tab_style(
+      style = list(
+        cell_text(
+          font = c(google_font(name = "Roboto Mono"))
+        )
+      ),
+      locations = cells_body(columns = vars(rapm_blended_overall_error,
+                                            rapm_blended_overall_error_2))
+    ) %>%
+    tab_style(
+      style = cell_text(align = "left"),
+      locations = cells_title(groups = c("title", "subtitle"))
+    ) %>%
+    gt_add_divider(columns = c(constructor_img_url, rapm_blended_constructor,
+                               constructor_img_url_2, rapm_blended_constructor_2), 
+                   color = '#808080', weight = 0.75) %>%
+    gt_add_divider(columns = c(rapm_blended_overall_error), 
+                   color = '#FFFFFF', weight = px(30)) %>%
+    cols_align(
+      align = "center",
+      columns = c(constructor_img_url, rapm_blended_driver, rapm_blended_constructor, rapm_blended_overall,
+                  constructor_img_url_2, rapm_blended_driver_2, rapm_blended_constructor_2, rapm_blended_overall_2)
+    ) %>%
+    data_color(
+      columns = vars(c(rapm_blended_driver, rapm_blended_constructor,
+                       rapm_blended_driver_2, rapm_blended_constructor_2)),
+      colors = scales::col_numeric(
+        palette = c("#de425b", "#eb7a52", "#f8b267", "#c6c96a", "#8aac49", "#488f31"),
+        domain = c(-4.5, 4.5)
+      ),
+      apply_to = "text"
+    ) %>%
+    data_color(
+      columns = vars(rapm_blended_overall,
+                     rapm_blended_overall_2),
+      colors = scales::col_numeric(
+        palette = c("#de425b", "#eb7a52", "#f8b267", "#c6c96a", "#8aac49", "#488f31"),
+        domain = c(-8, 8)
+      )
+    ) %>%
+    tab_options(
+      table.width = px(540)  # 7.5 inches * 72 pixels per inch
+    )
+  
+  return(overall_rankings_tbl_split)
+  
+  
+}
+
+
+
+overall_rankings_tbl_split <- get_overall_rankings_split_tbl(current_overall_rankings)
+
+gtsave(data = overall_rankings_tbl_split, 
+             filename = paste0("f1dataR - Exports/Visuals/Ratings/Tables/overall_rankings_split - ", latest_date, ".html")) 
+
+
+gtsave_extra(data = overall_rankings_tbl_split, 
+       filename = paste0("f1dataR - Exports/Visuals/Ratings/Tables/overall_rankings_split - ", latest_date, ".png"), 
+       vwidth = 1350,
+       zoom = 10) 
+
+
+
+
+
+#Driver Rankings
+
+get_driver_rankings_split_tbl <- function(current_driver_rankings){
+  
+  df1 <- current_driver_rankings[1:10, ]
+  df2 <- current_driver_rankings[11:20, ]
+  
+  # Reset the index for both dataframes
+  df1 <- df1 %>% mutate(index = row_number())
+  df2 <- df2 %>% mutate(index = row_number())
+  
+  # Rename columns in df2 with _2 suffix
+  colnames(df2) <- paste0(colnames(df2), "_2")
+  
+  # Join the two dataframes on the new index column
+  current_driver_rankings_split <- df1 %>% 
+    inner_join(df2, by = c("index" = "index_2")) %>%
+    dplyr::select(-index)  # Remove the index column if not needed
+  
+  
+  
+  driver_rankings_split_tbl <- current_driver_rankings_split %>%
+    mutate(rapm_error = paste0("± ", abs(round(rapm_error, 2))),
+           rapm_error_2 = paste0("± ", abs(round(rapm_error_2, 2)))) %>%
+    gt() %>%
+    tab_header(
+      title = md("**Driver Ratings**"),
+      subtitle = paste0("As of the ", latest_race)) %>% 
+    cols_label(
+      #Col 1
+      driver_headshot_url  = "Driver",
+      driver_name = "",
+      constructor_img_url = "Constructor",
+      parent_constructor_name = "",
+      rapm_blended = "Driver Rating",
+      rapm_error = "",
+      #Col 2
+      driver_headshot_url_2  = "Driver",
+      driver_name_2 = "",
+      constructor_img_url_2 = "Constructor",
+      parent_constructor_name_2 = "",
+      rapm_blended_2 = "Driver Rating",
+      rapm_error_2 = ""
+    )  %>%
+    #Col Split 1
+    gt_img_rows(columns = driver_headshot_url, height = 30, img_source = 'local') %>%
+    gt_img_rows(columns = constructor_img_url, height = 25, img_source = 'local') %>%
+    #Col Split 2
+    gt_img_rows(columns = driver_headshot_url_2, height = 30, img_source = 'local') %>%
+    gt_img_rows(columns = constructor_img_url_2, height = 25, img_source = 'local') %>%
+    #Col Split 1
+    gt_merge_stack(col1 = constructor_img_url, col2 = parent_constructor_name, small_cap=TRUE, 
+                   font_weight = c('normal','bold'), palette = c('black', '#404040')) %>%
+    gt_merge_stack(col1 = rapm_blended, col2 = rapm_error, small_cap=TRUE, 
+                   font_weight = c('normal','bold'),) %>%
+    #Col Split 2
+    gt_merge_stack(col1 = constructor_img_url_2, col2 = parent_constructor_name_2, small_cap=TRUE, 
+                   font_weight = c('normal','bold'), palette = c('black', '#404040')) %>%
+    gt_merge_stack(col1 = rapm_blended_2, col2 = rapm_error_2, small_cap=TRUE, 
+                   font_weight = c('normal','bold'),) %>%
+    fmt_number(
+      columns = c(rapm_blended,
+                  rapm_blended_2),
+      decimals = 2,
+      use_seps = FALSE,
+      force_sign = TRUE
+    ) %>%
+    tab_style(
+      style = list(
+        cell_text(
+          font = c(google_font(name = "Roboto Mono")),
+          weight = "bold"
+        )
+      ),
+      locations = cells_body(columns = vars(rapm_blended,
+                                            rapm_blended_2))
+    ) %>%
+    tab_style(
+      style = list(
+        cell_text(
+          font = c(google_font(name = "Roboto Mono")),
+        )
+      ),
+      locations = cells_body(columns = vars(rapm_error,
+                                            rapm_error_2))
+    ) %>%
+    tab_style(
+      style = list(
+        cell_text(font = c(
+          google_font(name = "Roboto")))),
+      locations = cells_body(columns = c(parent_constructor_name, driver_name,
+                                         parent_constructor_name_2, driver_name_2))) %>%
+    tab_options(
+      table.font.names = "Roboto", 
+      table.font.size = 14,
+      heading.title.font.size = 20,
+      heading.subtitle.font.size = 13,
+      column_labels.font.size = 13,
+      column_labels.font.weight = 'bold',
+      row_group.background.color = '#fAfAfA',
+      row_group.font.size = 11,
+      row_group.font.weight = 'bold',
+      data_row.padding = px(5)
+    ) %>%
+    tab_style(
+      style = cell_text(align = "left"),
+      locations = cells_title(groups = c("title", "subtitle"))
+    ) %>%
+    cols_align(
+      align = "center",
+      columns = c(constructor_img_url,rapm_blended)
+    ) %>%
+    gt_add_divider(columns = c(rapm_blended), 
+                   color = '#FFFFFF', weight = px(30)) %>%
+    data_color(
+      columns = vars(rapm_blended),
+      colors = scales::col_numeric(
+        palette = c("#de425b", "#eb7a52", "#f8b267", "#c6c96a", "#8aac49", "#488f31"),
+        domain = c(-3.5, 3.5)
+      ),
+      apply_to = "text"
+    ) 
+
+  return(driver_rankings_split_tbl)
+  
+}
+
+
+driver_rankings_tbl_split <- get_driver_rankings_split_tbl(current_driver_rankings)
+
+
+gtsave(data = driver_rankings_tbl_split, 
+             filename = paste0("f1dataR - Exports/Visuals/Ratings/Tables/driver_rankings_split - ", latest_date, ".html")) 
+
+
+
+
+gtsave_extra(data = driver_rankings_tbl_split, 
+             filename = paste0("f1dataR - Exports/Visuals/Ratings/Tables/driver_rankings_split - ", latest_date, ".png"), 
+             zoom = 10) 
+
+
+
+
+
+
+#Constructor Rankings
+
+
+get_constructor_rankings_split_tbl <- function(current_constructor_rankings){
+  
+  
+  df1 <- current_constructor_rankings[1:5, ]
+  df2 <- current_constructor_rankings[6:10, ]
+  
+  # Reset the index for both dataframes
+  df1 <- df1 %>% mutate(index = row_number())
+  df2 <- df2 %>% mutate(index = row_number())
+  
+  # Rename columns in df2 with _2 suffix
+  colnames(df2) <- paste0(colnames(df2), "_2")
+  
+  # Join the two dataframes on the new index column
+  current_constructor_rankings_split <- df1 %>% 
+    inner_join(df2, by = c("index" = "index_2")) %>%
+    dplyr::select(-index)  # Remove the index column if not needed
+  
+  
+  
+  tbl_constructor_split <- current_constructor_rankings_split %>%
+    mutate(rapm_error = paste0("± ", abs(round(rapm_error, 2))),
+           rapm_error_2 = paste0("± ", abs(round(rapm_error_2, 2)))) %>%
+    gt() %>%
+    tab_header(
+      title = md("**Constructor Ratings**"),
+      subtitle = paste0("As of the ", latest_race)) %>% 
+    cols_label(
+      #Col Split 1
+      constructor_img_url = "Constructor",
+      parent_constructor_name = "",
+      rapm_blended = "Constructor Rating",
+      rapm_error = "",
+      #Col Split 2
+      constructor_img_url_2 = "Constructor",
+      parent_constructor_name_2 = "",
+      rapm_blended_2 = "Constructor Rating",
+      rapm_error_2 = ""
+    )  %>%
+    #Col Split 1
+    gt_img_rows(columns = constructor_img_url, height = 25, img_source = 'local') %>%
+    #Col Split 2
+    gt_img_rows(columns = constructor_img_url_2, height = 25, img_source = 'local') %>%
+    #Col Split 1
+    gt_merge_stack(col1 = constructor_img_url, col2 = parent_constructor_name, small_cap=TRUE, 
+                   font_weight = c('normal','bold'), palette = c('black', '#404040')) %>%
+    gt_merge_stack(col1 = rapm_blended, col2 = rapm_error, small_cap=TRUE, 
+                   font_weight = c('normal','bold'),) %>%
+    #Col Split 2
+    gt_merge_stack(col1 = constructor_img_url_2, col2 = parent_constructor_name_2, small_cap=TRUE, 
+                   font_weight = c('normal','bold'), palette = c('black', '#404040')) %>%
+    gt_merge_stack(col1 = rapm_blended_2, col2 = rapm_error_2, small_cap=TRUE, 
+                   font_weight = c('normal','bold'),) %>%
+    fmt_number(
+      columns = c(rapm_blended, rapm_blended_2),
+      decimals = 1,
+      use_seps = FALSE,
+      force_sign = TRUE
+    ) %>%
+    tab_style(
+      style = list(
+        cell_text(
+          font = c(google_font(name = "Roboto Mono")),
+          weight = "bold"
+        )
+      ),
+      locations = cells_body(columns = vars(rapm_blended, rapm_blended_2))
+    ) %>%
+    tab_style(
+      style = list(
+        cell_text(font = c(
+          google_font(name = "Roboto")))),
+      locations = cells_body(columns = c(parent_constructor_name,
+                                         parent_constructor_name_2))) %>%
+    tab_options(
+      table.font.names = "Roboto", 
+      table.font.size = 14,
+      heading.title.font.size = 20,
+      heading.subtitle.font.size = 13,
+      column_labels.font.size = 13,
+      column_labels.font.weight = 'bold',
+      row_group.background.color = '#fAfAfA',
+      row_group.font.size = 11,
+      row_group.font.weight = 'bold',
+      data_row.padding = px(5)
+    ) %>%
+    tab_style(
+      style = cell_text(align = "left"),
+      locations = cells_title(groups = c("title", "subtitle"))
+    ) %>%
+    cols_align(
+      align = "center",
+      columns = c(constructor_img_url,rapm_blended,
+                  constructor_img_url_2,rapm_blended_2)
+    ) %>%
+    gt_add_divider(columns = c(rapm_blended), 
+                   color = '#FFFFFF', weight = px(30)) %>%
+    data_color(
+      columns = vars(rapm_blended, rapm_blended_2),
+      colors = scales::col_numeric(
+        palette = c("#de425b", "#eb7a52", "#f8b267", "#c6c96a", "#8aac49", "#488f31"),
+        domain = c(-4, 4)
+      ),
+      apply_to = "text"
+    ) 
+  
+  return(tbl_constructor_split)
+
+}
+
+
+
+constructor_rankings_tbl_split <- get_constructor_rankings_split_tbl(current_constructor_rankings)
+
+gtsave(data = constructor_rankings_tbl_split, 
+             filename = paste0("f1dataR - Exports/Visuals/Ratings/Tables/constructor_rankings_split - ", latest_date, ".html")) 
+
+gtsave_extra(data = constructor_rankings_tbl_split, 
+             filename = paste0("f1dataR - Exports/Visuals/Ratings/Tables/constructor_rankings_split - ", latest_date, ".png"), 
+             zoom = 10) 
+
+
+
+
 

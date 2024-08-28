@@ -2,7 +2,10 @@
 library(dplyr)
 
 #Read in latest RAPM History
-rapm_history <- readRDS("f1dataR - Exports/Models/rapm_history_posWeighted_noDNF_bootstrapped.rds") 
+rapm_history <- readRDS("f1dataR - Exports/Models/rapm_history_posWeighted_noDNF_bootstrapped.rds")  %>%
+  filter(overall_round <= 1113)
+
+write.csv(rapm_history %>% dplyr::select(-temp), "f1dataR - Exports/Models/rapm_history_posWeighted_noDNF_bootstrapped.csv") 
 
 
 
@@ -20,6 +23,11 @@ driver_rapm_history <- rapm_history %>%
          rapm_loess = -rapm_loess,
          rapm_blended = -rapm_blended,
          rapm_error = -rapm_error)
+
+saveRDS(object = driver_rapm_history, 
+        file = paste0("f1dataR - Exports/Data/driver_rapm_history_posWeighted_noDNF_bootstrapped.csv"))
+
+
 
 
 
@@ -45,7 +53,26 @@ constructor_rapm_history <- rapm_history %>%
          rapm_blended = -rapm_blended,
          rapm_error = -rapm_error)
 
+saveRDS(object = constructor_rapm_history, 
+        file = paste0("f1dataR - Exports/Data/constructor_rapm_history_posWeighted_noDNF_bootstrapped.csv"))
 
 
 
+diff_constructor <- setdiff(names(constructor_rapm_history), names(driver_rapm_history))
+
+# Columns in driver_rapm_history but not in constructor_rapm_history
+diff_driver <- setdiff(names(driver_rapm_history), names(constructor_rapm_history))
+
+# Output the differences
+print("Columns in constructor_rapm_history but not in driver_rapm_history:")
+print(diff_constructor)
+
+print("Columns in driver_rapm_history but not in constructor_rapm_history:")
+print(diff_driver)
+
+
+rapm_history_combined_cleaned <- rbind(constructor_rapm_history, driver_rapm_history)
+
+
+write.csv(rapm_history_combined_cleaned %>% dplyr::select(-temp), "f1dataR - Exports/Models/rapm_history_combined_cleaned.csv") 
 
