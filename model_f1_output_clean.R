@@ -2,8 +2,8 @@
 library(dplyr)
 
 #Read in latest RAPM History
-rapm_history <- readRDS("f1dataR - Exports/Models/rapm_history_posWeighted_noDNF_bootstrapped.rds")  %>%
-  filter(overall_round <= 1113)
+rapm_history <- readRDS("f1dataR - Exports/Models/rapm_history_posWeighted_noDNF_bootstrapped.rds") 
+  #  %>% filter(overall_round <= 1113)
 
 write.csv(rapm_history %>% dplyr::select(-temp), "f1dataR - Exports/Models/rapm_history_posWeighted_noDNF_bootstrapped.csv") 
 
@@ -16,8 +16,10 @@ driver_rapm_history <- rapm_history %>%
   left_join(driver_start_end, by = 'driver_id') %>%
   filter(model_date >= driver_start, model_date <= driver_end) %>%
   rename(current_constructor_id = constructor_id, current_primary_color = primary_color,
-         current_parent_constructor_id = parent_constructor_id)   %>%
-  left_join(driver_stints %>% dplyr::select(-parent_constructor_name, -constructor_name) , by = 'driver_id') %>%
+         current_parent_constructor_id = parent_constructor_id,
+         current_parent_constructor_name = parent_constructor_name,
+         current_constructor_name = constructor_name)   %>%
+  left_join(driver_stints, by = 'driver_id') %>%
   filter(model_date >= stint_start, model_date <= stint_end) %>%
   mutate(rapm = -rapm,
          rapm_loess = -rapm_loess,
@@ -71,7 +73,10 @@ print("Columns in driver_rapm_history but not in constructor_rapm_history:")
 print(diff_driver)
 
 
-rapm_history_combined_cleaned <- rbind(constructor_rapm_history, driver_rapm_history)
+rapm_history_combined_cleaned <- rbind(constructor_rapm_history, driver_rapm_history) %>%
+  left_join(schedule %>% 
+              dplyr::rename(overall_round = round_overall) %>%
+              dplyr::select(overall_round, race_name),  by = c('overall_round'))
 
 
 write.csv(rapm_history_combined_cleaned %>% dplyr::select(-temp), "f1dataR - Exports/Models/rapm_history_combined_cleaned.csv") 

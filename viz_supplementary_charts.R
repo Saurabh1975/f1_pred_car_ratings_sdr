@@ -97,8 +97,8 @@ constructor_mapping_tbl <- constructor_mapping_tbl %>%
                 constructor_name) 
 
 
-df1 <- current_driver_rankings[1:10, ]
-df2 <- current_driver_rankings[11:20, ]
+df1 <- constructor_mapping_tbl[1:13, ]
+df2 <- constructor_mapping_tbl[14:25, ]
 
 # Reset the index for both dataframes
 df1 <- df1 %>% mutate(index = row_number())
@@ -108,7 +108,7 @@ df2 <- df2 %>% mutate(index = row_number())
 colnames(df2) <- paste0(colnames(df2), "_2")
 
 # Join the two dataframes on the new index column
-current_driver_rankings_split <- df1 %>% 
+constructor_mapping_tbl_split <- df1 %>% 
   inner_join(df2, by = c("index" = "index_2")) %>%
   dplyr::select(-index)  # Remove the index column if not needed
 

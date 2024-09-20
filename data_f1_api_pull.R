@@ -10,6 +10,8 @@ library(purrr)
 
 
 
+load_drivers(season = 2024)
+
 ## Drivers Pull & Save
 driver_dfs <- map(1950:2024, ~load_drivers(season = .x))
 
@@ -107,4 +109,4 @@ sprints <- bind_rows(sprints_df) %>%
   mutate(finished = grepl("Finished|Lap", status),
          finished = as.logical(finished))
 
-saveRDS(object = sprints, file = paste0("api_data/sprint_results"))
+saveRDS(object = sprints, file = paste0("api_data/sprint_results.rds"))
