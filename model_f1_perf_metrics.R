@@ -190,6 +190,7 @@ calculate_weight_raw <- function(history_length, weight_limit = 0.9, max_history
 }
 
 
+dnf_partial = FALSE
 get_model_performance <- function(results_full, 
                                   dnf_partial = FALSE, 
                                   save_file_name = "rapm_history_base_model"){
@@ -269,7 +270,7 @@ get_model_performance <- function(results_full,
                                  pull(round) %>% unique())
     
     
-    #print(paste0("Starting ", current_circuit, ", ", substr(current_race_date, 1,4), " - ", current_race_date))
+    print(paste0("Starting ", current_circuit, ", ", substr(current_race_date, 1,4), " - ", current_race_date))
     
     #Get Index Range for the Current Date Selected
     start_index <- min(which(results_full$date <= current_race_date))  
@@ -337,7 +338,7 @@ get_model_performance <- function(results_full,
         temp = list(apply_loess_smoothing(cur_data(), 
                                           span = 0.3,
                                           weight_limit = max(weight_value),
-                                          max_history = 40)),
+                                          max_history = max_history_value)),
         rapm_loess = ifelse(overall_round == max(overall_round), 
                             map_dbl(temp, "smoothed_coefficient"),
                             rapm_loess),
@@ -393,7 +394,7 @@ get_model_performance <- function(results_full,
   
   
   
-  saveRDS(object = rapm_history, file = paste0("f1dataR - Exports/", save_file_name, '.rds'))
+  #saveRDS(object = rapm_history, file = paste0("f1dataR - Exports/", save_file_name, '.rds'))
   
   
   
@@ -413,7 +414,7 @@ get_model_performance <- function(results_full,
   
   
   
-  results_pred_test <- results_pred %>% filter(season > 2013, season < 2024)
+  results_pred_test <- results_pred %>% filter(season > 2013, season < 2025)
   
   
   
@@ -708,12 +709,16 @@ get_model_performance <- function(results_full,
 
 
 # Hyperparameters for time-decay and LOESS Blending
+
+# Hyperparameters for time-decay and LOESS Blending
 season_decay= 0.75
 round_decay= 0.075
 constructor_span = 0.3
-driver_span = 0.5
+driver_span = 0.3
 constructor_weight = 0.3
-driver_weight = 0.7
+driver_weight = 0.3
+max_history_value = 40
+
 
 
 
@@ -721,9 +726,9 @@ driver_weight = 0.7
 metrics_df <- data.frame()
 
 #'no_dnf', 'partial_credit_dnf', 'all_dnf', 
+# 'partial_credit_dnf', 'all_dnf', 'quali'
 
-
-for (dnf_model in c('no_dnf', 'partial_credit_dnf', 'all_dnf', 'quali')) {
+for (dnf_model in c( 'partial_credit_dnf', 'all_dnf', 'quali')) {
   cat("Processing dnf_model:", dnf_model, "\n")
   
   if (dnf_model == 'no_dnf') {
@@ -767,6 +772,6 @@ print(metrics_df)
 
 
 
-#saveRDS(object = metrics_df, file = paste0("f1dataR - Exports/Data/model_metrics_core.rds"))
+saveRDS(object = metrics_df, file = paste0("f1dataR - Exports/Data/model_metrics_core.rds"))
 
 

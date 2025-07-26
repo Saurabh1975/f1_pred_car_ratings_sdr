@@ -1,11 +1,20 @@
 
 library(dplyr)
 
+position_weighted = TRUE
+dnf_inclusive = FALSE
+
+file_path =  sprintf("f1dataR - Exports/Data/rapm_history_pos%s_%s_bootstrapped.rds",
+        ifelse(position_weighted, "Weighted", "Unweighted"),
+        ifelse(dnf_inclusive, "DNF", "noDNF"))
+
+print(file_path)
+
 #Read in latest RAPM History
-rapm_history <- readRDS("f1dataR - Exports/Models/rapm_history_posWeighted_noDNF_bootstrapped.rds") 
+rapm_history <- read.csv(file_path) 
   #  %>% filter(overall_round <= 1113)
 
-write.csv(rapm_history %>% dplyr::select(-temp), "f1dataR - Exports/Models/rapm_history_posWeighted_noDNF_bootstrapped.csv") 
+#write.csv(rapm_history %>% dplyr::select(-temp), file_path) 
 
 
 
@@ -26,8 +35,13 @@ driver_rapm_history <- rapm_history %>%
          rapm_blended = -rapm_blended,
          rapm_error = -rapm_error)
 
+driver_file_path =  sprintf("f1dataR - Exports/Data/driver_rapm_history_pos%s_%s_bootstrapped.rds",
+                     ifelse(position_weighted, "Weighted", "Unweighted"),
+                     ifelse(dnf_inclusive, "DNF", "noDNF"))
+
+
 saveRDS(object = driver_rapm_history, 
-        file = paste0("f1dataR - Exports/Data/driver_rapm_history_posWeighted_noDNF_bootstrapped.csv"))
+        file = driver_file_path)
 
 
 
@@ -55,8 +69,14 @@ constructor_rapm_history <- rapm_history %>%
          rapm_blended = -rapm_blended,
          rapm_error = -rapm_error)
 
+
+const_file_path =  sprintf("f1dataR - Exports/Data/constructor_rapm_history_pos%s_%s_bootstrapped.rds",
+                            ifelse(position_weighted, "Weighted", "Unweighted"),
+                            ifelse(dnf_inclusive, "DNF", "noDNF"))
+
+
 saveRDS(object = constructor_rapm_history, 
-        file = paste0("f1dataR - Exports/Data/constructor_rapm_history_posWeighted_noDNF_bootstrapped.csv"))
+        file = const_file_path)
 
 
 
@@ -73,11 +93,23 @@ print("Columns in driver_rapm_history but not in constructor_rapm_history:")
 print(diff_driver)
 
 
-rapm_history_combined_cleaned <- rbind(constructor_rapm_history, driver_rapm_history) %>%
+rapm_history_combined_cleaned <- bind_rows(constructor_rapm_history, driver_rapm_history) %>%
   left_join(schedule %>% 
               dplyr::rename(overall_round = round_overall) %>%
-              dplyr::select(overall_round, race_name),  by = c('overall_round'))
+              dplyr::select(overall_round, race_name),  by = c('overall_round')) %>% 
+  mutate(race_full_name = paste0(season, " - Race ", round, ": ", race_name),
+         display_name = ifelse(grepl("-d", entity_id), driver_name, parent_constructor_name))
 
 
-write.csv(rapm_history_combined_cleaned %>% dplyr::select(-temp), "f1dataR - Exports/Models/rapm_history_combined_cleaned.csv") 
 
+history_file_path =  sprintf("f1dataR - Exports/Data/rapm_history_combined_cleaned_pos%s_%s.rds",
+                           ifelse(position_weighted, "Weighted", "Unweighted"),
+                           ifelse(dnf_inclusive, "DNF", "noDNF"))
+
+
+saveRDS(rapm_history_combined_cleaned %>%
+            filter(season > 2013), history_file_path) 
+
+
+
+rapm_history_combined_cleaned

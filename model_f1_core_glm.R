@@ -19,12 +19,12 @@ make_matrix_rows <- function(lineup, players_in, dnf_partial = FALSE) {
   driver <- lineup[1]
   constructor <- lineup[2]
   
-  #dnf flag assignment if needed
+  
   dnf_driver <-  as.logical(lineup[3])
   dnf_constructor <- as.logical(lineup[4])
   
   
-  #Assign sparse rows
+  
   zeroRow <- rep(0, length(players_in))
   
   
@@ -49,11 +49,10 @@ make_matrix_rows <- function(lineup, players_in, dnf_partial = FALSE) {
     
   }
   
-  #Return one sparse row
+  
   return(zeroRow)
   
 }
-
 
 
 # Function: get_rapm_iterative_r2
@@ -64,7 +63,8 @@ make_matrix_rows <- function(lineup, players_in, dnf_partial = FALSE) {
 #             weights - weights for training
 
 
-get_rapm_iterative_r2 <- function(rapm_model, target, weights){
+
+get_rapm_iterative_r2_w_boot <- function(rapm_model, target, weights){
   
   
   #Run Initial Model to get Lambda
@@ -259,6 +259,7 @@ calc_kendall_tau <- function(data, race_col, y_test_col, y_pred_col) {
 
 
 
+#weights = prediction_weighting
 
 #Constructor Weight: 0.3
 #Driver Weight: 0.7
@@ -271,25 +272,42 @@ calc_kendall_tau <- function(data, race_col, y_test_col, y_pred_col) {
 season_decay= 0.75
 round_decay= 0.075
 constructor_span = 0.3
-driver_span = 0.5
+driver_span = 0.3
 constructor_weight = 0.3
-driver_weight = 0.7
+driver_weight = 0.3
+max_history_value = 40
+
+#Other Params
+dnf_inclusive = FALSE
+position_weighted = TRUE
+
+#FALSE/TRUE
+#TRUE/TRUE
+#TRUE/FAL>SE
 
 
-# Set the data for the model
-# Currently using the DNF-inclusive model
-results_full <- results_unfiltered %>%
-  filter(finished)
+if(dnf_inclusive){
+  results_full <- results_unfiltered
+} else {
+  results_full <- results_unfiltered %>%
+    filter(finished)
+}
+
+
 
 #Dataframe in which we'll store the prediction
 results_pred <- results_full 
 
-# Get weightint based on predictions
+# Get weighting based on predictions
 position_pred_weights <- results_full %>%
   group_by(date) %>%
   mutate(total_cars = max(position),
+         pos_weighted = position_weighted,
          cars_outside_points = total_cars - 10,
-         position_pred_weight = ifelse(position <= 10, 1, (cars_outside_points - (position -  10) + 1 ) /(cars_outside_points + 1))
+         position_pred_weight = ifelse(pos_weighted,
+                                       ifelse(position <= 10, 1, 
+                                              (cars_outside_points - (position -  10) + 1 ) /(cars_outside_points + 1)),
+                                       1)
   ) %>%
   ungroup() %>%
   pull(position_pred_weight)
@@ -305,7 +323,7 @@ driver_cons_list <- c(driver_list, parent_constructor_list)
 
 # Create the sparse matrix
 driv_const_matrix <- t(apply(results_full[, c('driver_id', 'parent_constructor_id', 'dnf_driver', 'dnf_constructor')], 1, 
-                             function(x) make_matrix_rows(lineup = x, players_in = driver_cons_list)))
+                             function(x) make_matrix_rows(lineup = x, players_in = driver_cons_list, dnf_partial = FALSE)))
 
 
 
@@ -392,7 +410,7 @@ for(i in 1:(length(race_dates))){
   
   
   # Get Response dataframe
-  rapm_response <- get_rapm_iterative_r2(rapm_model, target, prediction_weighting )
+  rapm_response <- get_rapm_iterative_r2_w_boot(rapm_model, target, prediction_weighting )
   
   
   # Store the outputs
@@ -475,21 +493,28 @@ for(i in 1:(length(race_dates))){
 
 
 
+# Generate dynamic filename
+filename <- sprintf("f1dataR - Exports/Data/RAPM Outputs/rapm_history_pos%s_%s_bootstrapped",
+                    ifelse(position_weighted, "Weighted", "Unweighted"),
+                    ifelse(dnf_inclusive, "DNF", "noDNF"))
 
 
-
-
-# Save Down Model
 saveRDS(object = rapm_history, 
-        file = paste0("f1dataR - Exports/Models/rapm_history_posWeighted_noDNF_bootstrapped.rds"))
-saveRDS(object = rapm_history, 
-        file = paste0("f1dataR - Exports/Data/rapm_history_posWeighted_noDNF_bootstrapped.csv"))
+        file = paste0(filename, '.rds'))
 
 
 
 
 
-#### Ad Hoc Model Metric Testing
+
+saveRDS(object = results_pred, 
+        file = paste0(filename, '_results_pred.rds'))
+
+
+
+
+
+  #### Ad Hoc Model Metric Testing
 results_pred <- results_pred %>%
   group_by(date) %>%
   mutate(position_pred_rank = rank(position_pred),
@@ -499,7 +524,9 @@ results_pred <- results_pred %>%
          position_pred_rank_const = rank(position_pred_constructor),
          total_cars = max(position),
          position_pred_weight = (total_cars - position + 1) / total_cars,
-         position_pred_diff = abs(position_pred_rank - position)) %>%
+         position_pred_diff = abs(position_pred_rank - position),
+         position_pred_diff_loess = abs(position_pred_rank_loess - position),
+         position_pred_diff_blended = abs(position_pred_rank_blended - position)) %>%
   ungroup()
 
 
@@ -515,6 +542,23 @@ mae_unweighted <- sum(results_pred_test$position_pred_diff)/nrow(results_pred_te
 mae_weighted <- sum(results_pred_test$position_pred_diff * results_pred_test$position_pred_weight)/sum(results_pred_test$position_pred_weight)
 print(paste0("MAE Unweighted: ", mae_unweighted))
 print(paste0("MAE Weighted: ", mae_weighted))
+
+#MAE
+mae_unweighted <- sum(results_pred_test$position_pred_diff_loess)/nrow(results_pred_test)
+mae_weighted <- sum(results_pred_test$position_pred_diff_loess * results_pred_test$position_pred_weight)/sum(results_pred_test$position_pred_weight)
+print(paste0("MAE Unweighted: ", mae_unweighted))
+print(paste0("MAE Weighted: ", mae_weighted))
+
+#MAE
+mae_unweighted <- sum(results_pred_test$position_pred_diff_blended)/nrow(results_pred_test)
+mae_weighted <- sum(results_pred_test$position_pred_diff_blended * results_pred_test$position_pred_weight)/sum(results_pred_test$position_pred_weight)
+print(paste0("MAE Unweighted: ", mae_unweighted))
+print(paste0("MAE Weighted: ", mae_weighted))
+
+
+raw: 3.74038045827929
+blended:3.74816255944661
+
 
 
 
@@ -546,21 +590,17 @@ calc_kendall_tau <- function(data, race_col, y_test_col, y_pred_col) {
 
 model_metrics_blended <- calc_kendall_tau(data = results_pred_test, 
                                           race_col = 'date',
-                                          y_test_col = 'position',
+                                          y_test_col = 'position_adj',
                                           y_pred_col = 'position_pred_rank_blended')
 
 
 #Get Model Metrics
 model_metrics_full <- calc_kendall_tau(data = results_pred_test, 
                                        race_col = 'date',
-                                       y_test_col = 'position',
+                                       y_test_col = 'position_adj',
                                        y_pred_col = 'position_pred_rank')
 
 
-model_metrics_blended <- calc_kendall_tau(data = results_pred_test, 
-                                          race_col = 'date',
-                                          y_test_col = 'position',
-                                          y_pred_col = 'position_pred_rank_blended')
 # Spearman Rho
 spearman_overall <- model_metrics_full$mean_spearman_rho
 spearman_overall_blended <- model_metrics_blended$mean_spearman_rho

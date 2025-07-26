@@ -42,7 +42,7 @@ tbl_model_core <- model_metrics %>%
   gt() %>%
   tab_header(
     title = md("**Time Weighted Linear Regression Model Performance**"),
-    subtitle = paste0("Tested on 2014 - 2023 Races")) %>% 
+    subtitle = paste0("Tested on 2014 - 2024 Races")) %>% 
   cols_label(
     dnf_model  = "Model Data",
     mae_unweighted = "MAE",
@@ -143,7 +143,7 @@ tbl_log_metrics <- log_model_metrics %>%
   gt() %>%
   tab_header(
     title = md("**Time Weighted Logistic Regression Model Performance (DNF-Inclusive)**"),
-    subtitle = paste0("Against Top N Cut Offs | Tested on 2014 - 2023 Races")) %>% 
+    subtitle = paste0("Against Top N Cut Offs | Tested on 2014 - 2024 Races")) %>% 
   cols_label(
     model_type  = "Top N",
     pseudo_r2_full = html("Psuedo R<sup>2</sup>"),
@@ -219,7 +219,7 @@ text_annotations <- data.frame(
 
 
 
-log_model_performance %>%
+g <- log_model_performance %>%
   filter(top_n_boolean < 11) %>%
   ggplot(aes(x = top_n_boolean), linewidth = 1.5) +
   geom_vline(data = text_annotations, aes(xintercept = x), 
@@ -236,7 +236,7 @@ log_model_performance %>%
             y= Inf,  color = '#404040', 
             inherit.aes = FALSE, vjust = 1.5, hjust = -0.1, size = 3,fontface = "bold") +
   theme_saurabh() +
-  labs(title = "McFadden R2 for Predicting Top N Placement ",
+  labs(title = "McFadden R2 for Predicting Top N Placement | 2014 - 2024",
        subtitle = "Logistic Ridge Regression, DNF-Inclusive - 
        <b><span style='color:#E10600;'> Overall</span></b> | 
        <b><span style='color:#087E8B;'> Constructors</span></b> | 
@@ -247,8 +247,11 @@ log_model_performance %>%
     plot.subtitle = element_markdown() # Enable markdown for title
   ) 
 
-ggsave(paste0("f1dataR - Exports/Visuals/Model Metrics/log_mcfaddens_trend_t20.jpg"), 
-       width = 8, height = 4, dpi = 1200)
+chart_printer(
+  g = g, 
+  chart_filepath = paste0("f1dataR - Exports/Visuals/Model Metrics/log_mcfaddens_trend_t20.jpg"),
+  img_width = 8, img_height = 2
+)
 
 
 
@@ -257,7 +260,8 @@ ggsave(paste0("f1dataR - Exports/Visuals/Model Metrics/log_mcfaddens_trend_t20.j
 
 
 
-log_model_performance %>%
+
+g <- log_model_performance %>%
   filter(top_n_boolean < 11) %>%
   ggplot(aes(x = top_n_boolean)) +
   geom_vline(data = text_annotations, aes(xintercept = x), 
@@ -271,14 +275,103 @@ log_model_performance %>%
             inherit.aes = FALSE, vjust = 1.5, hjust = -0.1, size = 3,fontface = "bold") +
   theme_saurabh() +
   labs(title = "Percent Variance Explained by Constructors",
-       subtitle = "Logistic Regression Predicting Top N Placement",
+       subtitle = "Logistic Regression Predicting Top N Placement | 2014 - 2024",
        x = "N",
        y = "") + 
   scale_y_continuous(labels = scales::percent, limits = c(0.5, 1))
 
 
+chart_printer(
+  g = g, 
+  chart_filepath = paste0("f1dataR - Exports/Visuals/Model Metrics/log_const_imp_trend_t20.jpg"),
+  img_width = 8, img_height = 2
+)
 
 
-ggsave(paste0("f1dataR - Exports/Visuals/Model Metrics/log_const_imp_trend_t20.jpg"), 
-       width = 8, height = 4, dpi = 1200)
+
+
+
+
+
+### Decay Perf
+
+
+
+time_decay_parameter_search <- readRDS('f1dataR - Exports/Data/time_decay_grid_search.rds')  %>%
+  select(season_decay, round_decay, mae_unweighted, kt_overall, 
+         nDCG_top3, nDCG_top6, nDCG_top10)
+
+
+
+tbl_time_decay_serach <- time_decay_parameter_search %>%
+  gt() %>%
+  tab_header(
+    title = md("**Time Weighted Linear Regression Model Performance**"),
+    subtitle = paste0("On 2014 - 2024 Races")) %>% 
+  cols_label(
+    season_decay  = "Season",
+    round_decay = "Round",
+    mae_unweighted = "Mean Absolute Error",
+    kt_overall = "Kendall Tau (𝜏)",
+    nDCG_top3 = "3",
+    nDCG_top6 = "6",
+    nDCG_top10 = "10"
+  )  %>%
+  fmt_number(
+    columns = c(season_decay, round_decay),
+    decimals = 4
+  )  %>%
+  fmt_number(
+    columns = c(mae_unweighted, kt_overall, nDCG_top3, nDCG_top6, nDCG_top10),
+    decimals = 2
+  ) %>%
+  tab_style(
+    style = list(
+      cell_text(
+        font = c(google_font(name = "Roboto Mono")),      )
+    ),
+    locations = cells_body()
+  ) %>%
+  tab_spanner(
+    label = "Exponential Decay Factor",
+    columns = c(season_decay, round_decay)
+  ) %>%
+  tab_spanner(
+    label = "Normalized Discounted Cumulative Gain",
+    columns = c(nDCG_top3, nDCG_top6, nDCG_top10)
+  ) %>%
+  tab_style(
+    style = list(
+      cell_fill(color = "#FFD9D9") # Highlight second row in light yellow
+    ),
+    locations = cells_body(
+      rows = season_decay == 0.75 & round_decay == 0.075
+    )
+  )  %>%
+  tab_footnote(
+    footnote = html("Overall decay weighting is:<br>𝑒<sup>(Season Decay)*(Current Season - Race Season)</sup> 
+                    * 𝑒<sup>(Round Decay)*(Current Round - Race Round)</sup>"),
+    locations = cells_column_spanners("Exponential Decay Factor")
+  ) %>%
+  tab_options(
+    table.font.names = "Roboto", 
+    table.font.size = 14,
+    heading.title.font.size = 20,
+    heading.subtitle.font.size = 13,
+    column_labels.font.size = 13,
+    column_labels.font.weight = 'bold',
+    row_group.background.color = '#fAfAfA',
+    row_group.font.size = 11,
+    row_group.font.weight = 'bold',
+    data_row.padding = px(5)
+  ) 
+
+
+
+
+
+gtsave(data = tbl_time_decay_serach, 
+       filename = paste0("f1dataR - Exports/Visuals/Model Metrics/time_decay_search_metrics.png"),
+       zoom = 4)
+
 

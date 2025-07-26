@@ -20,63 +20,6 @@ theme_saurabh <- function () {
 }
 
 
-###Reliability Plot
-
-text_annotations <- data.frame(
-  x = c(1986, 1997.5, 2010, 2019),
-  label = c('1.5L Turbo', 'V10 Era', 'V8 Era', 'Hybrid Era'),
-  seasons = c(1983, 1989, 2006, 2014)
-)
-
-
-reliabiltiy_const_df <- results %>%
-  group_by(season) %>%
-  summarise(races = n(),
-            finishes = sum(finished),
-            classification_pct =  finishes/races)
-
-
-reliabiltiy_const_df %>%
-  mutate(season = as.integer(season)) %>%
-  filter(season > 1982) %>%
-  ungroup() %>%
-  ggplot(aes(y = classification_pct, x = season, group = 1)) +
-  geom_point(color = '#E10600') +
-  geom_path(color = '#E10600') + 
-  geom_vline(data = text_annotations, aes(xintercept = seasons), 
-             color = '#404040', linetype = 'dashed') +
-  geom_text(data = text_annotations, aes(x = x, label = label), 
-            y= Inf,  color = '#404040', 
-            inherit.aes = FALSE, vjust = 1.5, size = 3,fontface = "bold") +
-  theme_saurabh() +
-  scale_y_continuous(labels = scales::percent) + 
-  labs(title = "Race Classifcation %",
-       subtitle = "1983 - Present",
-       x = "Season",
-       y = "Classifcation %")
-
-
-
-ggsave(paste0("f1dataR - Exports/Visuals/Misc/classifiction_pct.jpg"), width = 8, height = 4, dpi = 600)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 ### Parent/Child Relationships
 
@@ -193,7 +136,7 @@ prev_team_mapping <- results_pred %>%
          ))
 
 model_perf_driver_change <- results_pred %>%
-  filter(season > 2013, season < 2024) %>%
+  filter(season > 2013, season < 2025) %>%
   left_join(prev_team_mapping %>% dplyr::select(driver_id, season, category), by = c("driver_id", "season")) %>%
   group_by(category) %>%
   summarise(driver_season = n(),
@@ -211,7 +154,7 @@ tbl_model_perf_driver_change <- model_perf_driver_change %>%
   gt() %>%
   tab_header(
     title = md("**Mean Absolute Error by Driver-Season**"),
-    subtitle = paste0("Tested on 2014 - 2023 Races")) %>% 
+    subtitle = paste0("Tested on 2014 - 2024 Races")) %>% 
   cols_label(
     category  = "Driver",
     driver_season = "Driver-Seasons",

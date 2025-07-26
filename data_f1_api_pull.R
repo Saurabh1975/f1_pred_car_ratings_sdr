@@ -9,8 +9,9 @@ library(dplyr)
 library(purrr)
 
 
+todays_date <- Sys.Date()
 
-load_drivers(season = 2024)
+
 
 ## Drivers Pull & Save
 driver_dfs <- map(1950:2024, ~load_drivers(season = .x))
@@ -35,6 +36,8 @@ schedule_dfs <- map(1950:2024, ~load_schedule(season = .x))
 
 schedule <- bind_rows(schedule_dfs) %>%
   select(-lat, -long, -time) %>%
+  mutate(season = as.integer(season),
+         round = as.integer(round)) %>%
   filter(date < Sys.Date())
 
 saveRDS(object = schedule, file = paste0("api_data/schedule.rds"))
@@ -46,8 +49,8 @@ process_results <- function(row) {
   print(paste0(row[["season"]], " - ", row[["round"]], " - ", row[["circuit_id"]]))
   
   #Assign meta data
-  season <- row[["season"]]
-  round <- row[["round"]]
+  season <- as.integer(row[["season"]])
+  round <- as.integer(row[["round"]])
   result <- load_results(season = season, round = round)
   circuit_id <- row[["circuit_id"]]  # Assuming circuit_id is a column in schedule_new
   
@@ -66,6 +69,7 @@ process_results <- function(row) {
   
   return(result)
 }
+
 
 
 

@@ -20,7 +20,7 @@ drivers <- readRDS("api_data/drivers.rds") %>%
 #Results
 results <- readRDS("api_data/results.rds")
 #sprint
-sprint_results <- readRDS("api_data/sprint_results")
+sprint_results <- readRDS("api_data/sprint_results.rds")
 
 
 
@@ -58,6 +58,7 @@ constructor_mapping <- read.csv("supplementary_data/constructor_mapping.csv") %>
   rename(parent_constructor_name = name.x, constructor_name = name.y)
 
 constructor_start_end <- results %>% 
+  mutate(season = as.integer(season)) %>%
   inner_join(schedule %>% dplyr::select(season, round, round_overall, circuit_id, date), 
              by = c('season', 'round', 'circuit_id'))  %>%
   group_by(constructor_id) %>%
@@ -73,6 +74,7 @@ constructor_start_end <- results %>%
 ## Create Driver Data
 
 driver_start_end <-  results %>%
+  mutate(season = as.integer(season)) %>%
   inner_join(schedule, by = c('season', 'round', 'circuit_id')) %>%
   arrange(driver_id, desc(date)) %>%
   group_by(driver_id) %>%
@@ -85,6 +87,7 @@ driver_start_end <-  results %>%
 
 
 driver_stints <- results %>%
+  mutate(season = as.integer(season)) %>%
   inner_join(schedule, by = c('season', 'round', 'circuit_id')) %>%
   arrange(driver_id, date) %>%
   group_by(driver_id) %>%
@@ -108,6 +111,7 @@ driver_stints <- results %>%
 ## Clean results data for modeling
 
 results_unfiltered <- results %>%
+  mutate(season = as.integer(season)) %>%
   left_join(schedule, 
             by = c('season', 'round', 'circuit_id'))  %>%
   left_join(constructor_mapping, 

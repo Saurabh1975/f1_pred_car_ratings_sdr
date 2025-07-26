@@ -429,7 +429,7 @@ get_logistic_model <- function(results_full, dnf_partial = FALSE){
   
   
   results_pred_test <- results_pred %>%
-    filter(season > 2013, season < 2024) %>%
+    filter(season > 2013, season < 2025) %>%
     filter(!is.na(position_pred))
   
   
@@ -512,6 +512,9 @@ log_model_performance <- data.frame(dnf_filter = character(0),
                                     pseudo_r2_full = numeric(0),
                                     partial_pseudo_r2_driver = numeric(0),
                                     partial_pseudo_r2_constructor = numeric(0))
+
+
+test_response <- log_model_metrics = get_logistic_model(results_full = log_model_results, dnf_partial = FALSE)
 
 
 for(dnf_model in c('all_dnf')){

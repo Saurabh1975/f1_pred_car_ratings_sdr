@@ -1,17 +1,20 @@
-\begin{longtable}{crrrrrrr}
+\begin{table}[!t]
 \caption*{
 {\large \textbf{Time Weighted Linear Regression Model Performance}} \\ 
-{\small Tested on 2014 - 2023 Races}
-} \\ 
+{\small Tested on 2014 - 2024 Races}
+} 
+\fontsize{10.5pt}{12.6pt}\selectfont
+\begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}crrrrrrr}
 \toprule
  & \multicolumn{3}{c}{Model Metrics} & \multicolumn{4}{c}{Variance Explained} \\ 
 \cmidrule(lr){2-4} \cmidrule(lr){5-8}
 Model Data & MAE & Kendall Tau (𝜏) & 𝜏-LOESS Blended & Partial 𝜏<sub>Constructor</sub> & Partial 𝜏<sub>Driver</sub> & Partial Constructor/Driver 𝜏<sup>2</sup> Ratio & Implied Constructor Influence \\ 
 \midrule\addlinespace[2.5pt]
-All DNFs Included & $3.4$ & $0.532$ & $0.526$ & $0.320$ & $0.162$ & $3.900$ & $79.6\%$ \\ 
-DNF Assigned to Constructor/Driver & $3.8$ & $0.479$ & $0.474$ & $0.211$ & $0.160$ & $1.728$ & $63.3\%$ \\ 
-No DNFs Included & $2.3$ & $0.629$ & $0.624$ & $0.318$ & $0.222$ & $2.041$ & $67.1\%$ \\ 
-Qualification & $2.9$ & $0.600$ & $0.594$ & $0.300$ & $0.298$ & $1.016$ & $50.4\%$ \\ 
+All DNFs Included & {3.4} & {0.529} & {0.524} & {0.305} & {0.171} & {3.179} & {76.1\%} \\ 
+DNF Assigned to Constructor/Driver & {3.7} & {0.482} & {0.480} & {0.206} & {0.170} & {1.460} & {59.3\%} \\ 
+No DNFs Included & {2.3} & {0.625} & {0.622} & {0.305} & {0.228} & {1.780} & {64.0\%} \\ 
+Qualification & {3.0} & {0.595} & {0.593} & {0.286} & {0.304} & {0.886} & {47.0\%} \\ 
 \bottomrule
-\end{longtable}
+\end{tabular*}
+\end{table}
 

@@ -1,18 +1,20 @@
-\setlength{\LTpost}{0mm}
-\begin{longtable}{lrrrr}
+\begin{table}[!t]
 \caption*{
 {\large \textbf{Time Weighted Logistic Regression Model Performance (DNF-Inclusive)}} \\ 
-{\small Against Top N Cut Offs | Tested on 2014 - 2023 Races}
-} \\ 
+{\small Against Top N Cut Offs | Tested on 2014 - 2024 Races}
+} 
+\fontsize{10.5pt}{12.6pt}\selectfont
+\begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}lrrrr}
 \toprule
 Top N & Psuedo R<sup>2</sup>\textsuperscript{\textit{1}} & Partial Psuedo R<sup>2</sup><sub>Constructor</sub> & Partial Psuedo R<sup>2</sup><sub>Driver</sub> & Implied Constructor Influence \\ 
 \midrule\addlinespace[2.5pt]
-Podium (T3) & $0.288$ & $0.087$ & $0.023$ & $79.2\%$ \\ 
-Top 6 & $0.195$ & $0.082$ & $0.021$ & $79.7\%$ \\ 
-Points (T10) & $0.068$ & $0.034$ & $-0.003$ & $109.9\%$ \\ 
+Podium (T3) & {0.294} & {0.088} & {0.025} & {78.3\%} \\ 
+Top 6 & {0.204} & {0.084} & {0.024} & {77.7\%} \\ 
+Points (T10) & {0.084} & {0.039} & {0.004} & {91.5\%} \\ 
 \bottomrule
-\end{longtable}
+\end{tabular*}
 \begin{minipage}{\linewidth}
 \textsuperscript{\textit{1}}McFaddens Psuedo R<sup>2</sup>\\
 \end{minipage}
+\end{table}
 

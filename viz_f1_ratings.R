@@ -5,6 +5,8 @@ library(gtable)
 library(gtExtras)
 library(webshot2)
 
+
+
 # Function: theme_saurabh
 # Purpose: Personal, minimalist theme
 theme_saurabh <- function () { 
@@ -13,14 +15,13 @@ theme_saurabh <- function () {
     plot.title=element_text(size=18, family = 'Roboto Black', color = '#101010'),
     plot.subtitle=element_text(size=12, family = 'Roboto Slab'),
     plot.caption=element_text(size=7, family = 'Roboto Mono'),
-    panel.background = element_blank(),
-    
+    panel.background = element_blank()
   )
 }
 
-
-
 ### Constructor Viz
+
+selected_constructor = 'mclaren'
 
 
 plot_constructor_rapm_history <- function(selected_constructor){
@@ -86,19 +87,29 @@ plot_constructor_rapm_history <- function(selected_constructor){
     theme_saurabh() +
     labs(
       title = paste0("<span style='color:", df_constructor$primary_color[1], ";'>", selected_constructor_name, "</span> - Constructor Rating"),
-      subtitle = paste0("V6 Hybrid Era 2014 to ", end_date),
+      subtitle = paste0("V6 Hybrid Era 2014 to 2024"),
       x = "",
       y = "Rating"
     ) +
     theme(
       axis.text.x = element_blank(), # Remove x-axis tick labels
       axis.ticks.x = element_blank(), # Remove x-axis ticks
-      plot.title = element_markdown() # Enable markdown for title
+      plot.title = element_markdown()
     )
   
+  png(
+    filename = paste0("f1dataR - Exports/Visuals/Ratings/Trend/Constructor/", selected_constructor, ".png"),
+    width = 8,
+    height = 4,
+    units = "in",
+    res = 1200,
+    type = "cairo"  # <--- Forces use of Cairo on macOS
+  )
+  # Print the plot to the device
+  print(g)
   
-  ggsave(plot = g, filename = paste0("f1dataR - Exports/Visuals/Ratings/Trend/Constructor/", selected_constructor, ".jpg"),
-         width = 8, height = 4, dpi = 1200)
+  # Close the device
+  dev.off()
   
   
   
@@ -110,6 +121,9 @@ current_constructor_list <- constructor_rapm_history %>%
   ungroup() %>%
   filter(model_date == max(model_date)) %>%
   pull(parent_constructor_id)
+current_constructor_list
+
+
 
 
 for(constructor in current_constructor_list){
@@ -125,7 +139,7 @@ for(constructor in current_constructor_list){
 
 selected_driver = 'ricciardo'
 
-plot_driver_rapm_history <- function(selected_driver){
+plot_driver_rapm_history <- function(selected_driver, blended = TRUE){
   
   
   
@@ -194,6 +208,7 @@ plot_driver_rapm_history <- function(selected_driver){
   
   
   
+  
   # Create Line Plot (Season/Round)
   g <- ggplot(df_driver, aes(x = overall_round, y = rapm, color = primary_color, group = driver_id)) +
     geom_ribbon(aes(ymin = rapm_blended_lower_limit, ymax = rapm_blended_upper_limit, 
@@ -227,23 +242,38 @@ plot_driver_rapm_history <- function(selected_driver){
     scale_color_identity() +
     scale_fill_identity() +
     xlim(c(min(season_start_end$season_start_round) - 1, 
-           max(season_start_end$season_start_round) + 15)) +
+           max(season_start_end$season_end_round))) +
     ylim(c(rapm_lower_limit, rapm_upper_limit + (rapm_upper_limit - rapm_lower_limit)*.1)) +
     theme_saurabh() +
     labs(title = paste0(selected_driver_name, " - Driver Rating (Raw)"),
-         subtitle = paste0("V6 Hybrid Era 2014 to ", end_date),
+         subtitle = paste0("V6 Hybrid Era 2014 to 2024"),
          x = "",
          y = "Rating") +
     theme(
       axis.text.x = element_blank(), # Remove x-axis tick labels
       axis.ticks.x = element_blank(), # Remove x-axis ticks
-      plot.subtitle = element_markdown() # Enable markdown for title
+      plot.subtitle = element_markdown()
+      )
+   
+  
+  
+  
+    # Manually open a Cairo-based PNG graphics device
+    png(
+      filename = paste0("f1dataR - Exports/Visuals/Ratings/Trend/Driver/raw - ", selected_driver, ".png"),
+      width = 8,
+      height = 4,
+      units = "in",
+      res = 1200,
+      type = "cairo"  # <--- Forces use of Cairo on macOS
     )
-  
-  
-  ggsave(plot = g, filename = paste0("f1dataR - Exports/Visuals/Ratings/Trend/Driver/", selected_driver, " - raw.jpg"),
-         width = 8, height = 4, dpi = 1200)
-  
+    
+    # Print the plot to the device
+    print(g)
+    
+    # Close the device
+    dev.off()
+    
   
   
 }
@@ -251,12 +281,11 @@ plot_driver_rapm_history <- function(selected_driver){
 
 
 
-
-
 current_driver_list <- driver_rapm_history %>%
   ungroup() %>%
-  filter(model_date == max(model_date)) %>%
-  pull(driver_id)
+  filter(season == max(season)) %>%
+  pull(driver_id) %>%
+  unique()
 
 for(driver in current_driver_list){
   
@@ -273,7 +302,8 @@ for(driver in current_driver_list){
 
 
 
-get_overall_rankings_tbl <- function(current_overall_rankings){
+get_overall_rankings_tbl <- function(current_overall_rankings, 
+                                     title_text = "**Driver/Constructor Composite Ratings**"){
   
   
   tbl <- current_overall_rankings %>%
@@ -282,7 +312,7 @@ get_overall_rankings_tbl <- function(current_overall_rankings){
            rapm_blended_overall_error = paste0("± ", abs(round(rapm_blended_overall_error, 2)))) %>%
     gt() %>%
     tab_header(
-      title = md("**Driver/Constructor Composite Ratings**"),
+      title = md(title_text),
       subtitle = paste0("As of the ", latest_race)) %>% 
     cols_label(
       driver_headshot_url  = "Driver",
@@ -548,14 +578,13 @@ get_constructor_rankings_tbl <- function(current_constructor_rankings){
 latest_date = max(constructor_rapm_history  %>% 
                      pull(model_date))
 
-#filter(season < 2024) %>%
 
 latest_race = schedule  %>% filter(date == latest_date) 
 latest_race = paste0(latest_race$race_name, ", ", latest_race$season)
 
 # Get rankings for date above
 
-direct_path <- 'C:/Users/saurabh.rane/OneDrive - Slalom/NBA/f1_pred_car_ratings_sdr/'
+direct_path <- '/Users/saurabhr/Documents/GitHub/f1_pred_car_ratings_sdr/'
 
 
 current_constructor_rankings <- constructor_rapm_history %>%
@@ -575,7 +604,8 @@ current_driver_rankings <- driver_rapm_history %>%
   dplyr::select(driver_headshot_url, driver_name,
                 constructor_img_url, parent_constructor_name, 
                 rapm_blended, rapm_error) %>%
-  arrange(-rapm_blended) 
+  arrange(-rapm_blended) %>%
+  filter(driver_name != 'Oliver Bearman')
 
 
 current_overall_rankings <- driver_rapm_history %>%
@@ -594,10 +624,15 @@ current_overall_rankings <- driver_rapm_history %>%
          rapm_blended_constructor_error = rapm_error.y) %>%
   mutate(rapm_blended_overall = rapm_blended_driver + rapm_blended_constructor,
          rapm_blended_overall_error = sqrt(rapm_blended_driver_error^2 + rapm_blended_constructor_error^2)) %>%
-  arrange(-rapm_blended_overall) 
+  arrange(-rapm_blended_overall) %>%
+  filter(driver_name != 'Oliver Bearman')
 
 
-overall_rankings_tbl <- get_overall_rankings_tbl(current_overall_rankings )
+
+overall_rankings_tbl <- get_overall_rankings_tbl(current_overall_rankings)
+
+overall_rankings_tbl_t10 <- get_overall_rankings_tbl(current_overall_rankings %>% head(10), 
+                                                     title_text = "**Top 10 Driver/Constructor Composite Ratings**")
 
 constructor_rankings_tbl <- get_constructor_rankings_tbl(current_constructor_rankings)
 
@@ -611,6 +646,12 @@ gtsave_extra(data = overall_rankings_tbl,
 
 gtsave(data = overall_rankings_tbl, 
        filename = paste0("f1dataR - Exports/overall_rankings - ", latest_date, ".html"))
+
+
+
+gtsave_extra(data = overall_rankings_tbl_t10, 
+             filename = paste0("f1dataR - Exports/overall_rankings - t10 -", latest_date, ".png"), 
+             zoom = 10)
 
 
 gtsave(data = constructor_rankings_tbl, 
@@ -786,6 +827,7 @@ get_overall_rankings_split_tbl <- function(current_overall_rankings){
   
   
 }
+
 
 
 
