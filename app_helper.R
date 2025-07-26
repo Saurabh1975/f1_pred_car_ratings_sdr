@@ -1,8 +1,19 @@
 library(dplyr)
 
-df_test <- read.csv('f1dataR - Exports/Models/rapm_history_combined_cleaned.csv') %>%
+
+position_weighted = TRUE
+dnf_inclusive = FALSE
+
+filepath <-  sprintf(
+          "f1dataR - Exports/Data/rapm_history_combined_cleaned_pos%s_%s.rds",
+                                         ifelse(position_weighted, "Weighted", "Unweighted"),
+                                         ifelse(dnf_inclusive, "DNF", "noDNF"))
+
+
+df_test <- readRDS(filepath) %>%
   mutate(race_full_name = paste0(season, " - Race ", round, ": ", race_name),
-         display_name = ifelse(grepl("-d", entity_id), driver_name, parent_constructor_name))
+         display_name = ifelse(grepl("-d", entity_id), driver_name, parent_constructor_name)) %>%
+  dplyr::select(-temp)
 
 
 write.csv(df_test, 'app_data/rapm_history_combined_cleaned.csv')
