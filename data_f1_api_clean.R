@@ -18,7 +18,8 @@ constructors <- readRDS("api_data/constructors.rds")
 drivers <- readRDS("api_data/drivers.rds") %>% 
   mutate(driver_name = paste0(given_name, " ", family_name))
 #Results
-results <- readRDS("api_data/results.rds")
+results <- readRDS("api_data/results.rds")  %>%
+  mutate(season = as.integer(season))
 #sprint
 sprint_results <- readRDS("api_data/sprint_results.rds")
 
