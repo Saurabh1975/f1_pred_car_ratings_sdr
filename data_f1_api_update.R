@@ -65,7 +65,6 @@ saveRDS(object = schedule, file = paste0("api_data/schedule.rds"))
 
 ## Results
 
-
 if(nrow(missing_races > 0)){
   # Read in old results
   results <- readRDS(file = paste0("api_data/results.rds"))
