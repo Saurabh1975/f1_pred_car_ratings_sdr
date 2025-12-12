@@ -90,49 +90,49 @@ if(nrow(missing_races > 0)){
 }
 
 
-
-## Sprints
-
-
-process_sprints <- function(row) {
-  print(paste0(row[["season"]], " - ", row[["round"]], " - ", row[["circuit_id"]]))
-  
-  season <- row[["season"]]
-  round <- row[["round"]]
-  result <- load_sprint(season = season, round = round)
-  circuit_id <- row[["circuit_id"]]  # Assuming circuit_id is a column in schedule_new
-  
-  
-  result <- cbind(result, season = season, round = round, circuit_id = circuit_id,
-                  sprint = TRUE) 
-  
-  
-  
-  return(result)
-}
-
-#Grab new sprints if they exist
-if(nrow(missing_races %>% filter(!is.na(sprint_date))) > 0){
-  sprints <- readRDS(file = paste0("api_data/sprint_results.rds"))
-  
-  
-  new_sprints_df <- apply(missing_races %>% filter(!is.na(sprint_date)), 1, process_sprints)
-  
-  new_sprints <- bind_rows(new_sprints_df) %>%
-    select(season, round, circuit_id, constructor_id, driver_id, 
-           position,points, status, gap, time_sec, sprint) %>%
-    mutate(finished = grepl("Finished|Lap", status),
-           finished = as.logical(finished))
-  
-  sprints <- results %>%
-    rbind(new_sprints) %>%
-    distinct()
-    
-  saveRDS(object = sprints, file = paste0("api_data/sprint_results.rds"))
-  
-  
-  
-  
-}
-
-
+# 
+# ## Sprints
+# 
+# 
+# process_sprints <- function(row) {
+#   print(paste0(row[["season"]], " - ", row[["round"]], " - ", row[["circuit_id"]]))
+#   
+#   season <- row[["season"]]
+#   round <- row[["round"]]
+#   result <- load_sprint(season = season, round = round)
+#   circuit_id <- row[["circuit_id"]]  # Assuming circuit_id is a column in schedule_new
+#   
+#   
+#   result <- cbind(result, season = season, round = round, circuit_id = circuit_id,
+#                   sprint = TRUE) 
+#   
+#   
+#   
+#   return(result)
+# }
+# 
+# #Grab new sprints if they exist
+# if(nrow(missing_races %>% filter(!is.na(sprint_date))) > 0){
+#   sprints <- readRDS(file = paste0("api_data/sprint_results.rds"))
+#   
+#   
+#   new_sprints_df <- apply(missing_races %>% filter(!is.na(sprint_date)), 1, process_sprints)
+#   
+#   new_sprints <- bind_rows(new_sprints_df) %>%
+#     select(season, round, circuit_id, constructor_id, driver_id, 
+#            position,points, status, gap, time_sec, sprint) %>%
+#     mutate(finished = grepl("Finished|Lap", status),
+#            finished = as.logical(finished))
+#   
+#   sprints <- results %>%
+#     rbind(new_sprints) %>%
+#     distinct()
+#     
+#   saveRDS(object = sprints, file = paste0("api_data/sprint_results.rds"))
+#   
+#   
+#   
+#   
+# }
+# 
+# 
