@@ -54,11 +54,21 @@ text_annotations <- data.frame(
 )
 
 
+
+
 reliabiltiy_const_df <- results %>%
+  filter(!(status %in% c('Did not qualify', 'Did not prequalify'))) %>%
   group_by(season) %>%
   summarise(races = n(),
             finishes = sum(finished),
             classification_pct =  finishes/races)
+
+
+last_point <- reliabiltiy_const_df %>%
+  mutate(season = as.integer(season)) %>%
+  filter(season > 1982) %>%
+  arrange(season) %>%
+  slice_tail(n = 1)
 
 
 g <- reliabiltiy_const_df %>%
@@ -66,20 +76,49 @@ g <- reliabiltiy_const_df %>%
   filter(season > 1982) %>%
   ungroup() %>%
   ggplot(aes(y = classification_pct, x = season, group = 1)) +
-  geom_point(color = '#E10600') +
-  geom_path(color = '#E10600') + 
   geom_vline(data = text_annotations, aes(xintercept = seasons), 
              color = '#404040', linetype = 'dashed') +
-  geom_text(data = text_annotations, aes(x = x, label = label), 
-            y= Inf,  color = '#404040', 
-            inherit.aes = FALSE, vjust = 1.5, size = 3,fontface = "bold") +
+  geom_point(color = '#E10600') +
+  geom_path(color = '#E10600') +
+  
+  # annotation labels
+  geom_text(
+    data = text_annotations,
+    aes(x = x, label = label),
+    y = Inf,
+    color = '#404040',
+    inherit.aes = FALSE,
+    vjust = 1.5,
+    size = 3,
+    fontface = "bold"
+  ) +
+  
+  geom_label(
+    data = last_point,
+    aes(
+      x = season,
+      y = classification_pct,
+      label = scales::percent(classification_pct, accuracy = 1)
+    ),
+    fill = "#E10600",
+    color = "white",
+    fontface = "bold",
+    size = 3,
+    vjust = 1.25,                 # move above the point
+    label.padding = unit(0.25, "lines"),
+    label.r = unit(0.25, "lines") # rounded corners
+  ) +
+  
   theme_saurabh() +
-  scale_y_continuous(labels = scales::percent) + 
-  labs(title = "Race Classifcation %",
-       subtitle = "1983 - 2024",
-       x = "Season",
-       y = "Classifcation %")
+  scale_y_continuous(labels = scales::percent) +
+  labs(
+    title = "Race Classifcation %",
+    subtitle = "1983 - 2025 | Qualified Drivers Only",
+    x = "Season",
+    y = "Classifcation %"
+  )
 
+g
 
 chart_printer(
   g = g, 

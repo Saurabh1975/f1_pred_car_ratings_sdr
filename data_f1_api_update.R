@@ -58,7 +58,11 @@ missing_races <- anti_join(current_schedule, schedule, by = c("circuit_id", "sea
 print(paste0("Missing ", nrow(missing_races), " Races: ", missing_races %>% pull(circuit_id)))
 
 schedule <- schedule %>%
-  rbind(missing_races)
+  rbind(missing_races) %>%
+  arrange(season,  round) %>%
+  mutate(
+    round_overall = row_number()
+  )
 
 #Save down new races
 saveRDS(object = schedule, file = paste0("api_data/schedule.rds"))

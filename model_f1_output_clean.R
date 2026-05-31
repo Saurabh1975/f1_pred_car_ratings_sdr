@@ -16,7 +16,7 @@ print(file_path)
 rapm_history <- readRDS(file_path) 
   #  %>% filter(overall_round <= 1113)
 
-#write.csv(rapm_history %>% dplyr::select(-temp), file_path) 
+write.csv(rapm_history %>% dplyr::select(-temp), file_path) 
 
 
 
@@ -97,8 +97,9 @@ print(diff_driver)
 
 rapm_history_combined_cleaned <- bind_rows(constructor_rapm_history, driver_rapm_history) %>%
   left_join(schedule %>% 
-              dplyr::rename(overall_round = round_overall) %>%
-              dplyr::select(overall_round, race_name),  by = c('overall_round')) %>% 
+              #dplyr::rename(overall_round = round_overall) %>%
+              mutate(round = as.numeric(round)) %>%
+              dplyr::select(season, round, race_name),  by = c('season', 'round')) %>% 
   mutate(race_full_name = paste0(season, " - Race ", round, ": ", race_name),
          display_name = ifelse(grepl("-d", entity_id), driver_name, parent_constructor_name))
 
@@ -109,9 +110,25 @@ history_file_path =  sprintf("f1dataR - Exports/Data/rapm_history_combined_clean
                            ifelse(dnf_inclusive, "DNF", "noDNF"))
 
 
+
+write.csv(rapm_history_combined_cleaned %>% select(-temp), 
+          '/Users/saurabhr/Documents/GitHub/f1_rapm_app/public/rapm_history_combined_cleaned.csv')
+
+
 saveRDS(rapm_history_combined_cleaned %>%
             filter(season > 2013), history_file_path) 
 
 
 
-rapm_history_combined_cleaned
+rapm_history_combined_cleaned$temp
+
+
+library(dplyr)
+library(purrr)
+
+# Find list-columns
+list_cols <- names(rapm_history_combined_cleaned)[
+  map_lgl(rapm_history_combined_cleaned, is.list)
+]
+
+list_cols
