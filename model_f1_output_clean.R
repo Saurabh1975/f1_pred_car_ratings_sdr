@@ -111,12 +111,15 @@ history_file_path =  sprintf("f1dataR - Exports/Data/rapm_history_combined_clean
 
 
 
-write.csv(rapm_history_combined_cleaned %>% select(-temp), 
-          '/Users/saurabhr/Documents/GitHub/f1_rapm_app/public/rapm_history_combined_cleaned.csv')
-
-
 saveRDS(rapm_history_combined_cleaned %>%
             filter(season > 2013), history_file_path) 
+
+
+
+
+write.csv(rapm_history_combined_cleaned %>% select(-temp)%>%
+            filter(season > 2013), 
+          '/Users/saurabhr/Documents/GitHub/f1_pred_car_ratings_sdr/app_data/rapm_history_combined_cleaned.csv')
 
 
 
