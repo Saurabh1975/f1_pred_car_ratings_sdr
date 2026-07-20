@@ -4,7 +4,7 @@ library(dplyr)
 position_weighted = TRUE
 dnf_inclusive = FALSE
 
-file_path =  sprintf("f1dataR - Exports/Data/RAPM Outputs/rapm_history_pos%s_%s_bootstrapped.rds",
+file_path =  sprintf("f1dataR - Exports/Data/RAPM Outputs/rapm_history_pos%s_%s_bootstrapped_codex.rds",
                      ifelse(position_weighted, "Weighted", "Unweighted"),
                      ifelse(dnf_inclusive, "DNF", "noDNF"))
 
@@ -16,7 +16,10 @@ print(file_path)
 rapm_history <- readRDS(file_path) 
   #  %>% filter(overall_round <= 1113)
 
-write.csv(rapm_history %>% dplyr::select(-temp), file_path) 
+# Keep the serialized model object intact.  Writing this CSV to `file_path`
+# would replace the .rds file and make the next readRDS() call fail.
+csv_file_path <- sub("[.]rds$", ".csv", file_path)
+write.csv(rapm_history, csv_file_path, row.names = FALSE)
 
 
 
@@ -117,7 +120,7 @@ saveRDS(rapm_history_combined_cleaned %>%
 
 
 
-write.csv(rapm_history_combined_cleaned %>% select(-temp)%>%
+write.csv(rapm_history_combined_cleaned  %>%
             filter(season > 2013), 
           '/Users/saurabhr/Documents/GitHub/f1_pred_car_ratings_sdr/app_data/rapm_history_combined_cleaned.csv')
 
