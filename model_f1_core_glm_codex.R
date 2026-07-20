@@ -76,19 +76,51 @@ fit_separate_regulation_ridge <- function(driver_x, constructor_x, y,
     driver_beta <- as.numeric(coef(driver_fit))[-1]
   }
 
+  residual <- y - as.numeric(driver_x %*% driver_beta) -
+    as.numeric(constructor_x %*% constructor_beta)
+  driver_se <- ridge_coefficient_se(
+    driver_x, residual, driver_weights, lambda
+  )
+  constructor_se <- ridge_coefficient_se(
+    constructor_x, residual, constructor_weights, lambda
+  )
+
   list(driver_beta = driver_beta, constructor_beta = constructor_beta,
+       driver_se = driver_se, constructor_se = constructor_se,
        intercept = 0, lambda = lambda)
+}
+
+# Approximate coefficient uncertainty for the final weighted ridge update.
+# This is the heteroskedastic sandwich covariance of a ridge estimator and
+# gives usable entity-level intervals without the prohibitive cost of
+# bootstrapping every race in the rolling model.
+ridge_coefficient_se <- function(x, residual, weights, lambda) {
+  x <- as.matrix(x)
+  n <- nrow(x)
+  p <- ncol(x)
+  weighted_x <- x * sqrt(weights)
+  bread <- crossprod(weighted_x) + diag(lambda * n, p)
+  meat <- crossprod(x * weights)
+  sigma2 <- sum(weights * residual^2) / max(1, sum(weights) - p)
+  inverse_bread <- tryCatch(chol2inv(chol(bread)), error = function(e) solve(bread))
+  variance <- sigma2 * inverse_bread %*% meat %*% inverse_bread
+  sqrt(pmax(diag(variance), 0))
 }
 
 apply_loess_smoothing_codex <- function(data, span, weight_limit, max_history) {
   min_points <- ceiling(3 / span)
-  latest <- data %>% arrange(desc(overall_round)) %>% pull(rapm) %>% first()
+  data <- data %>% mutate(model_time = as.numeric(model_date))
+  latest <- data %>% arrange(desc(model_date)) %>% pull(rapm) %>% first()
   smoothed <- if (nrow(data) < min_points || all(data$rapm == data$rapm[1])) {
-    0
+    latest
   } else {
-    predict(loess(rapm ~ overall_round, data = data, span = span),
-            newdata = data.frame(overall_round = max(data$overall_round)))
+    tryCatch(
+      suppressWarnings(predict(loess(rapm ~ model_time, data = data, span = span),
+        newdata = data.frame(model_time = max(data$model_time)))),
+      error = function(e) NA_real_
+    )
   }
+  if (!is.finite(smoothed)) smoothed <- latest
   raw_weight <- min(nrow(data) / max_history, weight_limit)
   list(smoothed_coefficient = smoothed,
        smoothed_coefficient_adj = raw_weight * smoothed + (1 - raw_weight) * latest)
@@ -161,23 +193,24 @@ for (i in seq_along(race_dates)) {
     constructor_x_all[train_rows, , drop = FALSE], results_full$position[train_rows],
     driver_fit_weight, constructor_fit_weight, cv_fit$lambda.min)
   beta <- c(fit$driver_beta, fit$constructor_beta)
+  beta_se <- c(fit$driver_se, fit$constructor_se)
 
   output <- data.frame(entity_id = driver_cons_list, rapm = beta) %>%
     mutate(model_date = as.Date(current_date), season = current_season,
       round = current_round, overall_round = current_overall_round, circuit = current_circuit,
-      dev_ratio = NA_real_, rapm_loess = NA_real_, rapm_blended = NA_real_, rapm_error = NA_real_)
+      dev_ratio = NA_real_, rapm_loess = NA_real_, rapm_blended = NA_real_, rapm_error = beta_se)
   rapm_history <- bind_rows(rapm_history, output) %>%
     group_by(entity_id) %>%
     mutate(span_value = if_else(str_ends(entity_id, "-c"), constructor_span, driver_span),
       weight_value = if_else(str_ends(entity_id, "-c"), constructor_weight, driver_weight),
       temp = list(apply_loess_smoothing_codex(cur_data(), max(span_value), max(weight_value), max_history_value)),
-      rapm_loess = if_else(overall_round == max(overall_round), map_dbl(temp, "smoothed_coefficient"), rapm_loess),
-      rapm_blended = if_else(overall_round == max(overall_round), map_dbl(temp, "smoothed_coefficient_adj"), rapm_blended)) %>%
+      rapm_loess = if_else(model_date == max(model_date), map_dbl(temp, "smoothed_coefficient"), rapm_loess),
+      rapm_blended = if_else(model_date == max(model_date), map_dbl(temp, "smoothed_coefficient_adj"), rapm_blended)) %>%
     ungroup() %>% select(-span_value, -weight_value, -temp)
 
   if (i < length(race_dates)) {
     next_rows <- which(results_full$date == race_dates[i + 1])
-    current_coeff <- filter(rapm_history, overall_round == current_overall_round)
+    current_coeff <- filter(rapm_history, model_date == as.Date(current_date))
     loess_beta <- current_coeff$rapm_loess[match(driver_cons_list, current_coeff$entity_id)]
     blended_beta <- current_coeff$rapm_blended[match(driver_cons_list, current_coeff$entity_id)]
     results_pred[next_rows, "position_pred"] <- as.numeric(design_matrix[next_rows, , drop = FALSE] %*% beta)
