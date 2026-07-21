@@ -4,7 +4,7 @@ library(dplyr)
 position_weighted = TRUE
 dnf_inclusive = FALSE
 
-file_path =  sprintf("f1dataR - Exports/Data/RAPM Outputs/rapm_history_pos%s_%s_bootstrapped_codex.rds",
+file_path =  sprintf("f1dataR - Exports/Data/RAPM Outputs/rapm_history_pos%s_%s_bootstrapped.rds",
                      ifelse(position_weighted, "Weighted", "Unweighted"),
                      ifelse(dnf_inclusive, "DNF", "noDNF"))
 
@@ -13,7 +13,8 @@ file_path =  sprintf("f1dataR - Exports/Data/RAPM Outputs/rapm_history_pos%s_%s_
 print(file_path)
 
 #Read in latest RAPM History
-rapm_history <- readRDS(file_path) 
+rapm_history <- readRDS(file_path)  %>%
+  select(-temp)
   #  %>% filter(overall_round <= 1113)
 
 # Keep the serialized model object intact.  Writing this CSV to `file_path`

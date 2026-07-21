@@ -44,7 +44,8 @@ saveRDS(object = constructors, file = paste0("api_data/constructors.rds"))
 ## Schedule
 
 #Get saved schedule
-schedule <- readRDS(file = paste0("api_data/schedule.rds"))
+schedule <- readRDS(file = paste0("api_data/schedule.rds")) %>%
+  select(-round_overall)
 
 
 #Get current schedule
@@ -56,6 +57,7 @@ current_schedule <- load_schedule(current_year)  %>%
 #Identify and add missing races
 missing_races <- anti_join(current_schedule, schedule, by = c("circuit_id", "season")) 
 print(paste0("Missing ", nrow(missing_races), " Races: ", missing_races %>% pull(circuit_id)))
+
 
 schedule <- schedule %>%
   rbind(missing_races) %>%
